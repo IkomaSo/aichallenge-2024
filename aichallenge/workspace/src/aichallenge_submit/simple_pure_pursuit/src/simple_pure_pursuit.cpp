@@ -25,6 +25,7 @@ SimplePurePursuit::SimplePurePursuit()
   external_target_vel_(declare_parameter<float>("external_target_vel", 0.0))
 {
   pub_cmd_ = create_publisher<AckermannControlCommand>("output/control_cmd", 1);
+  pub_debug_marker_ = create_publisher<visualization_msgs::msg::MarkerArray>("output/debug_marker", 1);
 
   sub_kinematics_ = create_subscription<Odometry>(
     "input/kinematics", 1, [this](const Odometry::SharedPtr msg) { odometry_ = msg; });
@@ -100,6 +101,35 @@ void SimplePurePursuit::onTimer()
     }
     double lookahead_point_x = lookahead_point_itr->pose.position.x;
     double lookahead_point_y = lookahead_point_itr->pose.position.y;
+
+    // publish lookahed_point
+    visualization_msgs::msg::MarkerArray debug_marker;
+    // delete all markers
+    visualization_msgs::msg::Marker delete_marker;
+    delete_marker.ns = "lookahead_point";
+    delete_marker.id = 0;
+    delete_marker.action = visualization_msgs::msg::Marker::DELETEALL;
+    debug_marker.markers.push_back(delete_marker);
+    // add new marker
+    visualization_msgs::msg::Marker lookahead;
+    lookahead.header.frame_id = "map";
+    lookahead.header.stamp = get_clock()->now();
+    lookahead.ns = "lookahead_point";
+    lookahead.id = 1;
+    lookahead.type = visualization_msgs::msg::Marker::SPHERE;
+    lookahead.action = visualization_msgs::msg::Marker::ADD;
+    lookahead.pose.position.x = lookahead_point_x;
+    lookahead.pose.position.y = lookahead_point_y;
+    lookahead.pose.position.z = 0.0;
+    lookahead.scale.x = 0.5;
+    lookahead.scale.y = 0.5;
+    lookahead.scale.z = 0.5;
+    lookahead.color.a = 1.0;
+    lookahead.color.r = 1.0;
+    lookahead.color.g = 0.0;
+    lookahead.color.b = 0.0;
+    debug_marker.markers.push_back(lookahead);
+    pub_debug_marker_->publish(debug_marker);
 
     // calc steering angle for lateral control
     double alpha = std::atan2(lookahead_point_y - rear_y, lookahead_point_x - rear_x) -

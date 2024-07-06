@@ -9,6 +9,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <optional>
 #include <rclcpp/rclcpp.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 
 namespace simple_pure_pursuit {
 
@@ -29,6 +30,7 @@ class SimplePurePursuit : public rclcpp::Node {
   
   // publishers
   rclcpp::Publisher<AckermannControlCommand>::SharedPtr pub_cmd_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_debug_marker_;
   
   // timer
   rclcpp::TimerBase::SharedPtr timer_;

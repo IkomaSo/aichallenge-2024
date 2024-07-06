@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <log message="This is aichallenge_submit_launch."/>
-  <include file="$(find-pkg-share aichallenge_submit_launch)/launch/reference.launch.xml" >
+  <!-- <include file="$(find-pkg-share aichallenge_submit_launch)/launch/reference.launch.xml" >
+    <arg name="vehicle_model" value="racing_kart"/>
+    <arg name="sensor_model" value="racing_kart_sensor_kit"/>
+    <arg name="map_path" value="$(find-pkg-share aichallenge_submit_launch)/map"/>
+  </include> -->
+
+  <include file="$(find-pkg-share aichallenge_submit_launch)/launch/sanae.launch.xml" >
     <arg name="vehicle_model" value="racing_kart"/>
     <arg name="sensor_model" value="racing_kart_sensor_kit"/>
     <arg name="map_path" value="$(find-pkg-share aichallenge_submit_launch)/map"/>

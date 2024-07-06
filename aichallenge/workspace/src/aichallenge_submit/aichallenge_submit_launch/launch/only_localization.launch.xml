@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+    <include file="$(find-pkg-share aichallenge_submit_launch)/launch/playground.launch.xml" >
+        <arg name="vehicle_model" value="racing_kart"/>
+        <arg name="sensor_model" value="racing_kart_sensor_kit"/>
+        <arg name="map_path" value="$(find-pkg-share aichallenge_submit_launch)/map"/>
+  </include>
+
+    <arg name="rviz_config" default="$(find-pkg-share aichallenge_system_launch)/config/autoware.rviz" description="rviz config"/>
+    <!-- RViz -->
+    <group>
+        <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen" args="-d $(var rviz_config) -s $(find-pkg-share autoware_launch)/rviz/image/autoware.png"/>
+        <node pkg="aichallenge_system_launch" exec="object_marker.py" output="screen"/>
+    </group>
+
+  <!-- place a goal pose anywhere you like-->
+  <node pkg="goal_pose_setter" exec="goal_pose_setter_node" name="goal_pose_setter" output="screen">
+    <param from="$(find-pkg-share goal_pose_setter)/config/default_goal_pose.param.yaml" />
+  </node>
+</launch>
