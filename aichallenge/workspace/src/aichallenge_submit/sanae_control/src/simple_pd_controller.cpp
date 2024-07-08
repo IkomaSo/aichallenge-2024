@@ -1,4 +1,4 @@
-#include "simple_pure_pursuit/simple_pure_pursuit.hpp"
+#include "sanae_control/simple_pd_controller.hpp"
 
 #include <motion_utils/motion_utils.hpp>
 #include <tier4_autoware_utils/tier4_autoware_utils.hpp>
@@ -7,17 +7,19 @@
 
 #include <algorithm>
 
-namespace simple_pure_pursuit
+namespace sanae_control
 {
 
 using motion_utils::findNearestIndex;
 using tier4_autoware_utils::calcLateralDeviation;
 using tier4_autoware_utils::calcYawDeviation;
 
-SimplePurePursuit::SimplePurePursuit()
-: Node("simple_pure_pursuit"),
+SimplePDController::SimplePDController()
+: Node("simple_pd_controller"),
   // initialize parameters
   wheel_base_(declare_parameter<float>("wheel_base", 1.087)),
+  steering_angle_proportional_gain_(declare_parameter<float>("steering_angle_proportional_gain", 1.0)),
+  steering_angle_derivative_gain_(declare_parameter<float>("steering_angle_derivative_gain", 1.0)),
   lookahead_gain_(declare_parameter<float>("lookahead_gain", 1.0)),
   lookahead_min_distance_(declare_parameter<float>("lookahead_min_distance", 1.0)),
   speed_proportional_gain_(declare_parameter<float>("speed_proportional_gain", 1.0)),
@@ -34,7 +36,7 @@ SimplePurePursuit::SimplePurePursuit()
 
   using namespace std::literals::chrono_literals;
   timer_ =
-    rclcpp::create_timer(this, get_clock(), 30ms, std::bind(&SimplePurePursuit::onTimer, this));
+    rclcpp::create_timer(this, get_clock(), 30ms, std::bind(&SimplePDController::onTimer, this));
 }
 
 AckermannControlCommand zeroAckermannControlCommand(rclcpp::Time stamp)
@@ -49,7 +51,7 @@ AckermannControlCommand zeroAckermannControlCommand(rclcpp::Time stamp)
   return cmd;
 }
 
-void SimplePurePursuit::onTimer()
+void SimplePDController::onTimer()
 {
   // check data
   if (!subscribeMessageAvailable()) {
@@ -99,48 +101,19 @@ void SimplePurePursuit::onTimer()
     if (lookahead_point_itr == trajectory_->points.end()) {
       lookahead_point_itr = trajectory_->points.end() - 1;
     }
-    double lookahead_point_x = lookahead_point_itr->pose.position.x;
-    double lookahead_point_y = lookahead_point_itr->pose.position.y;
 
-    // publish lookahed_point
-    visualization_msgs::msg::MarkerArray debug_marker;
-    // delete all markers
-    visualization_msgs::msg::Marker delete_marker;
-    delete_marker.ns = "lookahead_point";
-    delete_marker.id = 0;
-    delete_marker.action = visualization_msgs::msg::Marker::DELETEALL;
-    debug_marker.markers.push_back(delete_marker);
-    // add new marker
-    visualization_msgs::msg::Marker lookahead;
-    lookahead.header.frame_id = "map";
-    lookahead.header.stamp = get_clock()->now();
-    lookahead.ns = "lookahead_point";
-    lookahead.id = 1;
-    lookahead.type = visualization_msgs::msg::Marker::SPHERE;
-    lookahead.action = visualization_msgs::msg::Marker::ADD;
-    lookahead.pose.position.x = lookahead_point_x;
-    lookahead.pose.position.y = lookahead_point_y;
-    lookahead.pose.position.z = 0.0;
-    lookahead.scale.x = 0.5;
-    lookahead.scale.y = 0.5;
-    lookahead.scale.z = 0.5;
-    lookahead.color.a = 1.0;
-    lookahead.color.r = 1.0;
-    lookahead.color.g = 0.0;
-    lookahead.color.b = 0.0;
-    debug_marker.markers.push_back(lookahead);
-    pub_debug_marker_->publish(debug_marker);
-
-    // calc steering angle for lateral control
-    double alpha = std::atan2(lookahead_point_y - rear_y, lookahead_point_x - rear_x) -
-                   tf2::getYaw(odometry_->pose.pose.orientation);
-    cmd.lateral.steering_tire_angle =
-      std::atan2(2.0 * wheel_base_ * std::sin(alpha), lookahead_distance);
+    double ff_steering_angle = lookahead_point_itr->front_wheel_angle_rad;
+    double lat_err = calcLateralDeviation(lookahead_point_itr->pose, geometry_msgs::msg::Point(odometry_->pose.pose.position));
+    double yaw_err = calcYawDeviation(lookahead_point_itr->pose, odometry_->pose.pose);
+    double fb_lat = steering_angle_proportional_gain_ * lat_err;
+    double fb_yaw = steering_angle_derivative_gain_ * yaw_err;
+    double steering_angle = ff_steering_angle - fb_lat - fb_yaw;
+    cmd.lateral.steering_tire_angle = steering_angle;
   }
   pub_cmd_->publish(cmd);
 }
 
-bool SimplePurePursuit::subscribeMessageAvailable()
+bool SimplePDController::subscribeMessageAvailable()
 {
   if (!odometry_) {
     RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000 /*ms*/, "odometry is not available");
@@ -152,12 +125,12 @@ bool SimplePurePursuit::subscribeMessageAvailable()
   }
   return true;
 }
-}  // namespace simple_pure_pursuit
+}  // namespace sanae_control
 
 int main(int argc, char const * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<simple_pure_pursuit::SimplePurePursuit>());
+  rclcpp::spin(std::make_shared<sanae_control::SimplePDController>());
   rclcpp::shutdown();
   return 0;
 }

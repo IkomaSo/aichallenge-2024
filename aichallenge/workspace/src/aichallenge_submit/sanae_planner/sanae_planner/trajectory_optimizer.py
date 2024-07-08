@@ -1,4 +1,4 @@
-from sanae_planning.center_line_map import CenterLineMap
+from sanae_planner.center_line_map import CenterLineMap
 
 import rclpy
 from rclpy.node import Node
@@ -42,7 +42,7 @@ class CasADiOptimizer:
     #           'max_iter':5000}
     self.opti.solver('ipopt', p_opts, s_opts)
     
-    self.opti.minimize(1.*self.L - 50.*self.Dot)
+    self.opti.minimize(1.*self.L - 30.*self.Dot)
     # self.opti.callback(lambda i: self.plot_traj(self.opti.debug.value(self.X)))
     # self.opti.callback(lambda i: print(f'iter: {i} L: {self.opti.debug.value(self.L)} Dot: {self.opti.debug.value(self.Dot)}'))
     sol = self.opti.solve()
@@ -50,7 +50,7 @@ class CasADiOptimizer:
     return sol.value(self.X)
     
     
-  def set_cource_subject(self, ignore_idx, margin=2.8):
+  def set_cource_subject(self, ignore_idx, margin=1.5):
     for i in range(self.n_points):
       if i in ignore_idx:
         continue
@@ -147,6 +147,7 @@ class TrajectoryOptimizer(Node):
     self.declare_parameter('traj_points', 500)
     self.declare_parameter('opti_points', 200)
     self.declare_parameter('opti_ahead', 40)
+    self.declare_parameter('wheel_base', 1.087)
     
     self.traj_pub = self.create_publisher(Trajectory, '/planning/scenario_planning/trajectory', 10)
     self.odom_sub = self.create_subscription(Odometry, 'input/odom', self.odom_callback, 10)
@@ -155,6 +156,7 @@ class TrajectoryOptimizer(Node):
     self.traj_points = self.get_parameter('traj_points').value
     self.opti_points = self.get_parameter('opti_points').value
     self.opti_ahead = self.get_parameter('opti_ahead').value
+    self.wheel_base = self.get_parameter('wheel_base').value
     self.center_line_map = CenterLineMap(self.map_path, self.opti_points)
     self.cl_nn = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(np.array([self.center_line_map.eq_cl_x, self.center_line_map.eq_cl_y]).T)
     self.optimizer = CasADiOptimizer(self.center_line_map, self.opti_points)
@@ -204,13 +206,15 @@ class TrajectoryOptimizer(Node):
       traf_x.append(self.center_line_map.eq_cl_x[idx] + normal_vec[0] * self.deviations[idx])
       traf_y.append(self.center_line_map.eq_cl_y[idx] + normal_vec[1] * self.deviations[idx])
     hires_x, hires_y = self.center_line_map.equidistant_interpolation(traf_x, traf_y, self.traj_points)
-    
     for i in range(self.traj_points + 1):
       traj_point = TrajectoryPoint()
       idx = (self.current_idx + i) % self.traj_points
+      prev_idx = (idx - 1 + self.traj_points) % self.traj_points
       next_idx = (idx + 1 + self.traj_points) % self.traj_points
+      p_p = np.array([hires_x[prev_idx], hires_y[prev_idx]])
       p_c = np.array([hires_x[idx], hires_y[idx]])
       p_n = np.array([hires_x[next_idx], hires_y[next_idx]])
+      prev_heading_vec = (p_c - p_p) / np.linalg.norm(p_c - p_p)
       heading_vec = (p_n - p_c) / np.linalg.norm(p_n - p_c)
       traj_point.pose.position.x = hires_x[idx]
       traj_point.pose.position.y = hires_y[idx]
@@ -221,8 +225,11 @@ class TrajectoryOptimizer(Node):
       traj_point.pose.orientation.z = q[2]
       traj_point.pose.orientation.w = q[3]
       traj_point.longitudinal_velocity_mps = 15.
+      curvature = np.cross(prev_heading_vec, heading_vec) / np.linalg.norm(p_n - p_p)
+      traj_point.front_wheel_angle_rad = np.arctan(self.wheel_base * curvature)
       traj.points.append(traj_point)
     self.traj_pub.publish(traj)
+    
 
 
 def main():

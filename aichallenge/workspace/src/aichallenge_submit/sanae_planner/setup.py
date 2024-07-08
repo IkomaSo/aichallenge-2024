@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'sanae_planning'
+package_name = 'sanae_planner'
 
 setup(
     name=package_name,
@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'trajectory_optimizer = sanae_planning.trajectory_optimizer:main'
+            'trajectory_optimizer = sanae_planner.trajectory_optimizer:main'
         ],
     },
 )
