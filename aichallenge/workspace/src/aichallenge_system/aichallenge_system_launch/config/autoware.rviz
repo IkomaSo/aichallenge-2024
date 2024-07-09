@@ -5,7 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Sensing1/LiDAR1/ConcatenatePointCloud1/Autocompute Value Bounds1
-        - /Planning1/ScenarioPlanning1
         - /Planning1/ScenarioPlanning1/ScenarioTrajectory1
         - /Control1/Debug/PurePursuit1/Topic1
       Splitter Ratio: 0.557669460773468
@@ -885,7 +884,7 @@ Visualization Manager:
                 Alpha: 0.9990000128746033
                 Color: 0; 0; 0
                 Constant Color: false
-                Value: true
+                Value: false
                 Width: 2
               View Point:
                 Alpha: 1
@@ -901,7 +900,7 @@ Visualization Manager:
                 Color: 0; 0; 0
                 Constant Color: false
                 Scale: 0.30000001192092896
-                Value: false
+                Value: true
             - Class: rviz_common/Group
               Displays:
                 - Class: rviz_common/Group
@@ -2033,7 +2032,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        lookahead_point: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile

@@ -6,9 +6,11 @@ from rclpy.node import Node
 import numpy as np
 import casadi
 import matplotlib.pyplot as plt
+import time
 
 from autoware_auto_planning_msgs.msg import Trajectory, TrajectoryPoint
 from nav_msgs.msg import Odometry
+from std_msgs.msg import Float64MultiArray
 from sklearn.neighbors import NearestNeighbors 
 from tf_transformations import quaternion_from_euler
 
@@ -19,11 +21,12 @@ class CasADiOptimizer:
     self.n_points = n_points
     
   # st_idxから一周分の経路を最適化する
-  def optimize(self, st_idx, deviations):
+  def optimize(self, st_idx, deviations, obstacles):
     self.opti = casadi.Opti()
     self.X = self.opti.variable(1, self.n_points)
     self.opti.set_initial(self.X, np.zeros((1, self.n_points)))
     self.L, self.Dot = self.get_traj_length()
+    self.Obst = self.get_obstacle_constraints(obstacles)
     
     # 初期条件
     self.init_len = 10
@@ -39,18 +42,18 @@ class CasADiOptimizer:
     p_opts={}
     s_opts = {'print_level':0}
     # s_opts = {'print_level':0,
-    #           'max_iter':5000}
+    #           'max_iter':100}
     self.opti.solver('ipopt', p_opts, s_opts)
     
-    self.opti.minimize(1.*self.L - 30.*self.Dot)
+    self.opti.minimize(1.*self.L - 50.*self.Dot + 2000.*self.Obst)
     # self.opti.callback(lambda i: self.plot_traj(self.opti.debug.value(self.X)))
-    # self.opti.callback(lambda i: print(f'iter: {i} L: {self.opti.debug.value(self.L)} Dot: {self.opti.debug.value(self.Dot)}'))
+    self.opti.callback(lambda i: print(f'iter: {i} L: {self.opti.debug.value(self.L)} Dot: {self.opti.debug.value(self.Dot)} Obst: {self.opti.debug.value(self.Obst)}'))
     sol = self.opti.solve()
     # self.plot_traj(sol.value(self.X))
     return sol.value(self.X)
     
     
-  def set_cource_subject(self, ignore_idx, margin=1.5):
+  def set_cource_subject(self, ignore_idx, margin=2.2):
     for i in range(self.n_points):
       if i in ignore_idx:
         continue
@@ -97,35 +100,26 @@ class CasADiOptimizer:
       dot_sum += dot
     return l, dot_sum
   
-  def debug_curve(self, X_debug):
-    l = 0
-    prev_vec = None
-    curves = []
-    angles = []
-    for i in range(self.n_points):
-      p1_idx = i - 1 if i > 0 else self.n_points - 1
-      _, _, normal_vec = self.center_line_map.get_boundaries(p1_idx)
-      p1_x = self.center_line_map.eq_cl_x[p1_idx] + normal_vec[0] * X_debug[p1_idx]
-      p1_y = self.center_line_map.eq_cl_y[p1_idx] + normal_vec[1] * X_debug[p1_idx]
-      _, _, normal_vec = self.center_line_map.get_boundaries(i)
-      p2_x = self.center_line_map.eq_cl_x[i] + normal_vec[0] * X_debug[i]
-      p2_y = self.center_line_map.eq_cl_y[i] + normal_vec[1] * X_debug[i]
-      diff_x = p2_x - p1_x
-      diff_y = p2_y - p1_y
-      dl = (diff_x**2 + diff_y**2)**0.5
-      vec = [diff_x / dl, diff_y / dl]
-      if prev_vec is not None:
-        dot = prev_vec[0] * vec[0] + prev_vec[1] * vec[1]
-        ang = np.arccos(dot)
-        curv = ang / dl
-        curves.append(curv)
-        angles.append(ang)
-      prev_vec = vec
-      l += dl
-    # print('curv:', curves)
-    print('max curv:', max(curves))
-    # print('angles:', angles)
-    print('max angle:', max(angles))
+  def get_obstacle_constraints(self, obstacles):
+    obst = 0
+    for obs in obstacles:
+      for i in range(self.n_points):
+        next_idx = (i + 1) % self.n_points
+        _, _, normal_vec = self.center_line_map.get_boundaries(i)
+        p0_x = self.center_line_map.eq_cl_x[i] + normal_vec[0] * self.X[0,i]
+        p0_y = self.center_line_map.eq_cl_y[i] + normal_vec[1] * self.X[0,i]
+        _, _, normal_vec = self.center_line_map.get_boundaries(next_idx)
+        p1_x = self.center_line_map.eq_cl_x[next_idx] + normal_vec[0] * self.X[0,next_idx]
+        p1_y = self.center_line_map.eq_cl_y[next_idx] + normal_vec[1] * self.X[0,next_idx]
+        for j in range(10):
+          p_x = p0_x + (p1_x - p0_x) * j / 10
+          p_y = p0_y + (p1_y - p0_y) * j / 10
+          dist = ((p_x - obs[0])**2 + (p_y - obs[1])**2)**0.5
+          if dist < 5.0
+            obst += casadi.exp(-(dist / obs[2])**2)
+          # print(dist / (obs[2]+1.0))
+          # obst += casadi.exp(0)
+    return obst
 
   def plot_traj(self, vars):
     plt.cla()
@@ -151,6 +145,7 @@ class TrajectoryOptimizer(Node):
     
     self.traj_pub = self.create_publisher(Trajectory, '/planning/scenario_planning/trajectory', 10)
     self.odom_sub = self.create_subscription(Odometry, 'input/odom', self.odom_callback, 10)
+    self.obst_sub = self.create_subscription(Float64MultiArray, "/aichallenge/objects", self.obst_callback, 1)
     
     self.map_path = self.get_parameter('lanelet2_map_path').value
     self.traj_points = self.get_parameter('traj_points').value
@@ -161,6 +156,7 @@ class TrajectoryOptimizer(Node):
     self.cl_nn = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(np.array([self.center_line_map.eq_cl_x, self.center_line_map.eq_cl_y]).T)
     self.optimizer = CasADiOptimizer(self.center_line_map, self.opti_points)
     self.odom = None
+    self.obstacles = []
     self.deviations = np.zeros(self.opti_points)
     self.current_idx = 0
     while self.odom is None:
@@ -174,14 +170,16 @@ class TrajectoryOptimizer(Node):
     st_idx = (self.current_idx + self.opti_ahead) % self.opti_points
     sol = None
     try:
-      sol = self.optimizer.optimize(st_idx, self.deviations)
+      st = time.time()
+      sol = self.optimizer.optimize(st_idx, self.deviations, self.obstacles)
+      print(f'Optimization time: {time.time() - st}')
     except Exception as e:
       self.get_logger().error(f'Optimization failed: {e}')
       return
     self.get_logger().info('Optimization succeeded')
     devi_new = self.deviations.copy()
     # 2/3周分の経路を更新
-    for i in range(self.opti_points*2//3):
+    for i in range(self.opti_points*9//10):
       idx = (st_idx + i) % self.opti_points
       devi_new[idx] = sol[idx]
     self.deviations = devi_new
@@ -193,6 +191,16 @@ class TrajectoryOptimizer(Node):
     _, idx = self.cl_nn.kneighbors(np.array([[msg.pose.pose.position.x, msg.pose.pose.position.y]]))
     self.current_idx = idx[0][0]
     self.publish_trajectory()
+    
+  def obst_callback(self, msg):
+    print(msg.data)
+    self.obstacles = []
+    for i in range(0, len(msg.data), 4):
+      x = msg.data[i]
+      y = msg.data[i + 1]
+      r = msg.data[i + 3]
+      self.obstacles.append((x, y, r))
+    print(self.obstacles)
   
   def publish_trajectory(self):
     traj = Trajectory()
