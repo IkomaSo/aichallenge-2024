@@ -194,7 +194,7 @@
       <node pkg="sanae_planner" exec="trajectory_optimizer" name="trajectory_optimizer" output="screen">
         <param name="lanellet2_map_file" value="$(var map_path)/$(var lanelet2_map_file)"/>
         <param name="n_points" value="150"/>
-        <param name="opti_ahead" value="10"/>
+        <param name="opti_ahead" value="0"/>
         <param name="wheel_base" value="1.087"/>
         <remap from="input/odom" to="/localization/kinematic_state"/>
         <remap from="output/trajectory" to="/planning/scenario_planning/trajectory"/>
@@ -204,13 +204,13 @@
   </group>
 
   <node pkg="sanae_control" exec="simple_pd_controller" name="simple_pd_controller" output="screen">
-    <param name="use_external_target_vel" value="true"/>
-    <param name="external_target_vel" value="8.0"/>
-    <param name="steering_angle_proportional_gain" value="0.04"/>
-    <param name="steering_angle_derivative_gain" value="0.5"/> 
-    <param name="lookahead_gain" value="0.3"/>
+    <param name="use_external_target_vel" value="false"/>
+    <param name="external_target_vel" value="0.0"/>
+    <param name="steering_angle_proportional_gain" value="0.03"/>
+    <param name="steering_angle_derivative_gain" value="0.4"/> 
+    <param name="lookahead_gain" value="0.4"/>
     <param name="lookahead_min_distance" value="0."/>
-    <param name="speed_proportional_gain" value="3.0"/>
+    <param name="speed_proportional_gain" value="10.0"/>
 
     <remap from="input/kinematics" to="/localization/kinematic_state"/>
     <remap from="input/trajectory" to="/planning/scenario_planning/trajectory"/>

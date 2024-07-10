@@ -141,6 +141,10 @@ class CenterLineMap:
     p_lb = p_c + normal_vec * self.nearest_lb_dist[idx]
     p_rb = p_c - normal_vec * self.nearest_rb_dist[idx]
     return p_lb, p_rb, normal_vec
+  
+  def get_nearest_idx(self, x, y):
+    dist = (self.eq_cl_x - x)**2 + (self.eq_cl_y - y)**2
+    return np.argmin(dist)
     
 if __name__ == '__main__':
   center_line_map = CenterLineMap('/aichallenge/workspace/src/aichallenge_submit/aichallenge_submit_launch/map/lanelet2_map.osm', 100)
