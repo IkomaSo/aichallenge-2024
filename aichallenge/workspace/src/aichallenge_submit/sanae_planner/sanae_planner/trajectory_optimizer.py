@@ -14,8 +14,11 @@ from std_msgs.msg import Float64MultiArray
 from sklearn.neighbors import NearestNeighbors 
 from tf_transformations import quaternion_from_euler
 
-PIT_X = 89626.3671875
-PIT_Y = 43134.921875
+PIT_X = 89627.6484375
+PIT_Y = 43133.52734375
+
+PIT_WAYPOINT_X = 89630.0390625
+PIT_WAYPOINT_Y = 43130.05859375
 
 class CasADiOptimizer:
   def __init__(self, center_line_map, n_points):
@@ -44,9 +47,14 @@ class CasADiOptimizer:
     if pitstop:
       pit_idx = self.center_line_map.get_nearest_idx(PIT_X, PIT_Y)
       pit_dist = ((self.center_line_map.eq_cl_x[pit_idx] - PIT_X)**2 + (self.center_line_map.eq_cl_y[pit_idx] - PIT_Y)**2)**0.5
-      for i in range(1):
-        self.opti.subject_to(self.X[0, (pit_idx - i + self.n_points) % self.n_points] == pit_dist)
-        ignore_idx.append((pit_idx - i) % self.n_points)
+      self.opti.subject_to(self.X[0, pit_idx] == pit_dist)
+      ignore_idx.append(pit_idx)
+        
+      wp_idx = self.center_line_map.get_nearest_idx(PIT_WAYPOINT_X, PIT_WAYPOINT_Y)
+      wp_dist = ((self.center_line_map.eq_cl_x[wp_idx] - PIT_WAYPOINT_X)**2 + (self.center_line_map.eq_cl_y[wp_idx] - PIT_WAYPOINT_Y)**2)**0.5
+      self.opti.subject_to(self.X[0, wp_idx] == wp_dist)
+      ignore_idx.append(wp_idx)
+      
       
     self.set_cource_subject(ignore_idx)
     
@@ -56,7 +64,7 @@ class CasADiOptimizer:
     #           'max_iter':100}
     self.opti.solver('ipopt', p_opts, s_opts)
     
-    self.opti.minimize(1.*self.L - 50.*self.Dot + 100.*self.Obst)
+    self.opti.minimize(1.*self.L - 500.*self.Dot + 50.*self.Obst)
     # self.opti.callback(lambda i: self.plot_traj(self.opti.debug.value(self.X)))
     self.opti.callback(lambda i: print(f'iter: {i} L: {self.opti.debug.value(self.L)} Dot: {self.opti.debug.value(self.Dot)} Obst: {self.opti.debug.value(self.Obst)}'))
     sol = self.opti.solve()
@@ -131,7 +139,7 @@ class CasADiOptimizer:
           p_x = p0_x + (p1_x - p0_x) * j / 10
           p_y = p0_y + (p1_y - p0_y) * j / 10
           dist = ((p_x - obs[0])**2 + (p_y - obs[1])**2)**0.5
-          obst += casadi.exp(-(dist / obs[2])**2)
+          obst += casadi.exp(-(dist / obs[2] / 1.2)**2)
     return obst
 
   def plot_traj(self, vars):
@@ -149,7 +157,7 @@ class CasADiOptimizer:
 class TrajectoryOptimizer(Node):
   def __init__(self):
     super().__init__('trajectory_optimizer')
-    self.declare_parameter('lanelet2_map_path', 
+    self.declare_parameter('lanelet2_map_file', 
               '/aichallenge/workspace/src/aichallenge_submit/aichallenge_submit_launch/map/lanelet2_map.osm')
     self.declare_parameter('traj_points', 500)
     self.declare_parameter('opti_points', 200)
@@ -160,7 +168,7 @@ class TrajectoryOptimizer(Node):
     self.odom_sub = self.create_subscription(Odometry, 'input/odom', self.odom_callback, 10)
     self.obst_sub = self.create_subscription(Float64MultiArray, "/aichallenge/objects", self.obst_callback, 1)
     
-    self.map_path = self.get_parameter('lanelet2_map_path').value
+    self.map_path = self.get_parameter('lanelet2_map_file').value
     self.traj_points = self.get_parameter('traj_points').value
     self.opti_points = self.get_parameter('opti_points').value
     self.opti_ahead = self.get_parameter('opti_ahead').value
@@ -216,16 +224,19 @@ class TrajectoryOptimizer(Node):
     th_idx = self.opti_points // 4  
     if self.current_idx >= th_idx and self.prev_pos_idx < th_idx:
       self.lap += 1
+      # self.pitstop = True
       if self.lap == 3:
         self.pitstop = True
+      else :
+        self.pitstop = False
     print(f'Current index: {self.current_idx}, prev index: {self.prev_pos_idx}, lap: {self.lap}, pit_dist: {pit_dist}, pitstop: {self.pitstop}, in_pit: {self.in_pit}')
     self.prev_pos_idx = self.current_idx
 
-    if pit_dist < 3.0 and self.in_pit == False:
+    if pit_dist < 0.8 and self.in_pit == False:
       self.in_pit = True
       self.pitin_start = time.time()
       
-    if self.in_pit and time.time() - self.pitin_start > 3.0:
+    if self.in_pit and time.time() - self.pitin_start > 6.0:
       self.in_pit = False
       self.pitstop = False
       
@@ -276,7 +287,7 @@ class TrajectoryOptimizer(Node):
       traj_point.longitudinal_velocity_mps = 30.0 / 3.6
       if self.pitstop:
         dist = ((pit_idx - idx + self.traj_points) % self.traj_points) / self.traj_points
-        vel = dist*dist * 30.0 / 3.6 * 8*8
+        vel = max(dist * 30.0 / 3.6 * 4.0, 5.0 / 3.6)
         if vel < traj_point.longitudinal_velocity_mps:
           traj_point.longitudinal_velocity_mps = vel
       curvature = np.cross(prev_heading_vec, heading_vec) / np.linalg.norm(p_n - p_p)
