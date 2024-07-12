@@ -221,7 +221,7 @@ class TrajectoryOptimizer(Node):
     _, idx = self.cl_nn.kneighbors(np.array([[msg.pose.pose.position.x, msg.pose.pose.position.y]]))
     self.current_idx = idx[0][0]
     pit_dist = ((PIT_X - msg.pose.pose.position.x)**2 + (PIT_Y - msg.pose.pose.position.y)**2)**0.5
-    th_idx = self.opti_points // 4  
+    th_idx = self.opti_points // 3  
     if self.current_idx >= th_idx and self.prev_pos_idx < th_idx:
       self.lap += 1
       # self.pitstop = True
@@ -232,15 +232,16 @@ class TrajectoryOptimizer(Node):
     print(f'Current index: {self.current_idx}, prev index: {self.prev_pos_idx}, lap: {self.lap}, pit_dist: {pit_dist}, pitstop: {self.pitstop}, in_pit: {self.in_pit}')
     self.prev_pos_idx = self.current_idx
 
-    if pit_dist < 0.8 and self.in_pit == False:
+    if pit_dist < 2.0 and self.in_pit == False and self.pitstop:
       self.in_pit = True
       self.pitin_start = time.time()
       
-    if self.in_pit and time.time() - self.pitin_start > 6.0:
+    if self.in_pit and time.time() - self.pitin_start > 3.0:
       self.in_pit = False
       self.pitstop = False
       
-    self.publish_trajectory()
+    if not self.in_pit: 
+      self.publish_trajectory()
     
   def obst_callback(self, msg):
     print(msg.data)
@@ -285,15 +286,26 @@ class TrajectoryOptimizer(Node):
       traj_point.pose.orientation.z = q[2]
       traj_point.pose.orientation.w = q[3]
       traj_point.longitudinal_velocity_mps = 30.0 / 3.6
-      if self.pitstop:
-        dist = ((pit_idx - idx + self.traj_points) % self.traj_points) / self.traj_points
-        vel = max(dist * 30.0 / 3.6 * 4.0, 5.0 / 3.6)
-        if vel < traj_point.longitudinal_velocity_mps:
-          traj_point.longitudinal_velocity_mps = vel
+      # if self.pitstop:
+      #   dist = ((pit_idx - idx + self.traj_points) % self.traj_points) / self.traj_points
+      #   vel = max(dist * 30.0 / 3.6 * 4.0, 5.0 / 3.6)
+      #   if vel < traj_point.longitudinal_velocity_mps:
+      #     traj_point.longitudinal_velocity_mps = vel
       curvature = np.cross(prev_heading_vec, heading_vec) / np.linalg.norm(p_n - p_p)
       traj_point.front_wheel_angle_rad = np.arctan(self.wheel_base * curvature)
       traj.points.append(traj_point)
       if self.pitstop and idx == pit_idx:
+        pit = np.array([PIT_X, PIT_Y])
+        waypoint = np.array([PIT_WAYPOINT_X, PIT_WAYPOINT_Y])
+        pit_heading = (pit - waypoint) / np.linalg.norm(pit - waypoint)
+        q = quaternion_from_euler(0, 0, np.arctan2(pit_heading[1], pit_heading[0]))
+        traj_point.pose.position.x = pit[0]
+        traj_point.pose.position.y = pit[1]
+        traj_point.pose.orientation.x = q[0]
+        traj_point.pose.orientation.y = q[1]
+        traj_point.pose.orientation.z = q[2]
+        traj_point.pose.orientation.w = q[3]
+        traj_point.front_wheel_angle_rad = 0.0
         break
     self.traj_pub.publish(traj)
     

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <autoware_auto_control_msgs/msg/ackermann_control_command.hpp>
+#include <autoware_auto_vehicle_msgs/msg/velocity_report.hpp>
 #include <autoware_auto_planning_msgs/msg/trajectory.hpp>
 #include <autoware_auto_planning_msgs/msg/trajectory_point.hpp>
 #include <geometry_msgs/msg/pose.hpp>
@@ -13,6 +14,7 @@
 namespace sanae_control {
 
 using autoware_auto_control_msgs::msg::AckermannControlCommand;
+using autoware_auto_vehicle_msgs::msg::VelocityReport;
 using autoware_auto_planning_msgs::msg::Trajectory;
 using autoware_auto_planning_msgs::msg::TrajectoryPoint;
 using geometry_msgs::msg::Pose;
@@ -25,6 +27,7 @@ class SimplePDController : public rclcpp::Node {
   
   // subscribers
   rclcpp::Subscription<Odometry>::SharedPtr sub_kinematics_;
+  rclcpp::Subscription<VelocityReport>::SharedPtr sub_velocity_;
   rclcpp::Subscription<Trajectory>::SharedPtr sub_trajectory_;
   
   // publishers
@@ -36,6 +39,7 @@ class SimplePDController : public rclcpp::Node {
 
   // updated by subscribers
   Trajectory::SharedPtr trajectory_;
+  VelocityReport::SharedPtr velocity_;
   Odometry::SharedPtr odometry_;
 
 
@@ -49,6 +53,8 @@ class SimplePDController : public rclcpp::Node {
   const double speed_proportional_gain_;
   const bool use_external_target_vel_;
   const double external_target_vel_;
+  const double stop_omega_;
+  const double stop_position_threshold_;
 
 
  private:
