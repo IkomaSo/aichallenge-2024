@@ -7,6 +7,7 @@ import numpy as np
 import casadi
 import matplotlib.pyplot as plt
 import time
+import threading
 
 from autoware_auto_planning_msgs.msg import Trajectory, TrajectoryPoint
 from nav_msgs.msg import Odometry
@@ -21,16 +22,17 @@ PIT_WAYPOINT_X = 89630.0390625
 PIT_WAYPOINT_Y = 43130.05859375
 
 class CasADiOptimizer:
-  def __init__(self, center_line_map, n_points):
+  def __init__(self, center_line_map, n_points, cource_margin):
     # コース１周をn_pointsで分割したmap
     self.center_line_map = center_line_map
     self.n_points = n_points
+    self.cource_margin = cource_margin
     
   # st_idxから一周分の経路を最適化する
-  def optimize(self, st_idx, deviations, obstacles, pitstop=False):
+  def optimize(self, st_idx, deviations, obstacles, init_sol, pitstop=False):
     self.opti = casadi.Opti()
     self.X = self.opti.variable(1, self.n_points)
-    self.opti.set_initial(self.X, np.zeros((1, self.n_points)))
+    self.opti.set_initial(self.X, init_sol)
     self.L, self.Dot = self.get_traj_length()
     self.Obst = self.get_obstacle_constraints(obstacles)
     
@@ -56,29 +58,32 @@ class CasADiOptimizer:
       ignore_idx.append(wp_idx)
       
       
-    self.set_cource_subject(ignore_idx)
+    self.set_cource_subject(ignore_idx, self.cource_margin)
     
     p_opts={}
-    s_opts = {'print_level':0}
+    # s_opts = {'print_level':0}
     # s_opts = {'print_level':0,
+    #           'mu_min':1e-1,
     #           'max_iter':100}
+    s_opts = {'print_level':0,
+              'max_iter':100}
     self.opti.solver('ipopt', p_opts, s_opts)
     
-    self.opti.minimize(1.*self.L - 500.*self.Dot + 50.*self.Obst)
+    self.opti.minimize(1.*self.L - 20.*self.Dot + 10.*self.Obst)
     # self.opti.callback(lambda i: self.plot_traj(self.opti.debug.value(self.X)))
-    self.opti.callback(lambda i: print(f'iter: {i} L: {self.opti.debug.value(self.L)} Dot: {self.opti.debug.value(self.Dot)} Obst: {self.opti.debug.value(self.Obst)}'))
+    # self.opti.callback(lambda i: print(f'iter: {i} L: {self.opti.debug.value(self.L)} Dot: {self.opti.debug.value(self.Dot)} Obst: {self.opti.debug.value(self.Obst)}'))
     sol = self.opti.solve()
     # self.plot_traj(sol.value(self.X))
     return sol.value(self.X)
   
     
-  def set_cource_subject(self, ignore_idx, margin=2.4):
+  def set_cource_subject(self, ignore_idx, margin):
     for i in range(self.n_points):
       if i in ignore_idx:
         continue
       rb = -self.center_line_map.nearest_rb_dist[i]+margin
       lb = self.center_line_map.nearest_lb_dist[i]-margin
-      min_width = .5
+      min_width = 1.0
       if lb-rb < min_width:
         cent = (rb + lb) / 2
         rb = cent + -min_width/2
@@ -139,7 +144,7 @@ class CasADiOptimizer:
           p_x = p0_x + (p1_x - p0_x) * j / 10
           p_y = p0_y + (p1_y - p0_y) * j / 10
           dist = ((p_x - obs[0])**2 + (p_y - obs[1])**2)**0.5
-          obst += casadi.exp(-(dist / obs[2] / 1.2)**2)
+          obst += casadi.exp(-(dist / obs[2] / 1.1)**4)
     return obst
 
   def plot_traj(self, vars):
@@ -163,6 +168,7 @@ class TrajectoryOptimizer(Node):
     self.declare_parameter('opti_points', 200)
     self.declare_parameter('opti_ahead', 0)
     self.declare_parameter('wheel_base', 1.087)
+    self.declare_parameter('cource_margin', 2.4)
     
     self.traj_pub = self.create_publisher(Trajectory, '/planning/scenario_planning/trajectory', 10)
     self.odom_sub = self.create_subscription(Odometry, 'input/odom', self.odom_callback, 10)
@@ -175,7 +181,7 @@ class TrajectoryOptimizer(Node):
     self.wheel_base = self.get_parameter('wheel_base').value
     self.center_line_map = CenterLineMap(self.map_path, self.opti_points)
     self.cl_nn = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(np.array([self.center_line_map.eq_cl_x, self.center_line_map.eq_cl_y]).T)
-    self.optimizer = CasADiOptimizer(self.center_line_map, self.opti_points)
+    self.optimizer = CasADiOptimizer(self.center_line_map, self.opti_points, self.get_parameter('cource_margin').value)
     self.odom = None
     self.obstacles = []
     self.deviations = np.zeros(self.opti_points)
@@ -186,25 +192,38 @@ class TrajectoryOptimizer(Node):
     self.pitin_start = time.time()
     self.lap = 0
     self.prev_pos_idx = -1
+    self.optimizing = False
     while self.odom is None:
       self.get_logger().info('Waiting for odometry message...')
       rclpy.spin_once(self)
     self.optimize_trajectory()
-    self.create_timer(5, self.timer_callback)
+    self.opti_thread = threading.Thread(target=self.opti_loop)
+    self.opti_thread.start()
+    # self.create_timer(5, self.timer_callback)
     
   def timer_callback(self):
     self.optimize_trajectory()
+    
+  def opti_loop(self):
+    while rclpy.ok():
+      self.optimize_trajectory()
+      time.sleep(5)
   
   def optimize_trajectory(self):
+    if self.optimizing:
+      return
+    self.optimizing = True
     self.get_logger().info('Optimizing trajectory...')
     st_idx = (self.current_idx + self.opti_ahead) % self.opti_points
     sol = None
     try:
       st = time.time()
-      sol = self.optimizer.optimize(st_idx, self.deviations, self.obstacles, self.pitstop)
+      sol = self.optimizer.optimize(st_idx, self.deviations, self.obstacles, np.zeros(self.opti_points), self.pitstop)
+      
       print(f'Optimization time: {time.time() - st}')
     except Exception as e:
       self.get_logger().error(f'Optimization failed: {e}')
+      self.optimizing = False
       return
     self.get_logger().info('Optimization succeeded')
     devi_new = self.deviations.copy()
@@ -213,6 +232,7 @@ class TrajectoryOptimizer(Node):
       idx = (st_idx + i) % self.opti_points
       devi_new[idx] = sol[idx]
     self.deviations = devi_new
+    self.optimizing = False
     
 
   def odom_callback(self, msg):
@@ -236,7 +256,6 @@ class TrajectoryOptimizer(Node):
       self.in_pit = True
       self.pitstop = False
       self.pitin_start = time.time()
-      self.optimize_trajectory()
       
     if self.in_pit and time.time() - self.pitin_start > 4.0:
       self.in_pit = False

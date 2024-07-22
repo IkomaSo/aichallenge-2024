@@ -202,9 +202,10 @@
 
       <node pkg="sanae_planner" exec="trajectory_optimizer" name="trajectory_optimizer" output="screen">
         <param name="lanelet2_map_file" value="$(var map_path)/$(var lanelet2_map_file)"/>
-        <param name="n_points" value="150"/>
+        <param name="opti_points" value="120"/>
         <param name="opti_ahead" value="0"/>
         <param name="wheel_base" value="1.087"/>
+        <param name="cource_margin" value="1.8"/>
         <remap from="input/odom" to="/localization/kinematic_state"/>
         <remap from="output/trajectory" to="/planning/scenario_planning/trajectory"/>
       </node>
@@ -217,11 +218,11 @@
     <param name="external_target_vel" value="0.0"/>
     <param name="steering_angle_proportional_gain" value="0.047"/>
     <param name="steering_angle_derivative_gain" value="0.4"/> 
-    <param name="lookahead_gain" value="0.5"/>
+    <param name="lookahead_gain" value="0.18"/>
     <param name="lookahead_min_distance" value="0."/>
     <param name="speed_proportional_gain" value="10.0"/>
-    <param name="stop_position_threshold" value="30.0"/>
-    <param name="stop_omega" value="0.77"/>
+    <param name="stop_position_threshold" value="15.0"/>
+    <param name="stop_omega" value="1.2"/>
 
     <remap from="input/kinematics" to="/localization/kinematic_state"/>
     <remap from="input/velocity" to="/vehicle/status/velocity_status"/>
