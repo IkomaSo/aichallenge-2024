@@ -234,9 +234,11 @@ class TrajectoryOptimizer(Node):
 
     if pit_dist < 2.0 and self.in_pit == False and self.pitstop:
       self.in_pit = True
+      self.pitstop = False
       self.pitin_start = time.time()
+      self.optimize_trajectory()
       
-    if self.in_pit and time.time() - self.pitin_start > 3.0:
+    if self.in_pit and time.time() - self.pitin_start > 4.0:
       self.in_pit = False
       self.pitstop = False
       
