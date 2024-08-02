@@ -11,7 +11,7 @@ import threading
 
 from autoware_auto_planning_msgs.msg import Trajectory, TrajectoryPoint
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray, Int32
 from sklearn.neighbors import NearestNeighbors 
 from tf_transformations import quaternion_from_euler
 
@@ -69,7 +69,7 @@ class CasADiOptimizer:
               'max_iter':100}
     self.opti.solver('ipopt', p_opts, s_opts)
     
-    self.opti.minimize(1.*self.L - 20.*self.Dot + 10.*self.Obst)
+    self.opti.minimize(1.*self.L - 1.*self.Dot + 30.*self.Obst)
     # self.opti.callback(lambda i: self.plot_traj(self.opti.debug.value(self.X)))
     # self.opti.callback(lambda i: print(f'iter: {i} L: {self.opti.debug.value(self.L)} Dot: {self.opti.debug.value(self.Dot)} Obst: {self.opti.debug.value(self.Obst)}'))
     sol = self.opti.solve()
@@ -173,6 +173,7 @@ class TrajectoryOptimizer(Node):
     self.traj_pub = self.create_publisher(Trajectory, '/planning/scenario_planning/trajectory', 10)
     self.odom_sub = self.create_subscription(Odometry, 'input/odom', self.odom_callback, 10)
     self.obst_sub = self.create_subscription(Float64MultiArray, "/aichallenge/objects", self.obst_callback, 1)
+    self.cond_sub = self.create_subscription(Int32, "/aichallenge/pitstop/condition", self.condition_callback, 1)
     
     self.map_path = self.get_parameter('lanelet2_map_file').value
     self.traj_points = self.get_parameter('traj_points').value
@@ -192,6 +193,7 @@ class TrajectoryOptimizer(Node):
     self.pitin_start = time.time()
     self.lap = 0
     self.prev_pos_idx = -1
+    self.condition = 0
     self.optimizing = False
     while self.odom is None:
       self.get_logger().info('Waiting for odometry message...')
@@ -257,7 +259,7 @@ class TrajectoryOptimizer(Node):
       self.pitstop = False
       self.pitin_start = time.time()
       
-    if self.in_pit and time.time() - self.pitin_start > 4.0:
+    if self.in_pit and self.condition < 100:
       self.in_pit = False
       self.pitstop = False
       
@@ -273,6 +275,9 @@ class TrajectoryOptimizer(Node):
       r = msg.data[i + 3]
       self.obstacles.append((x, y, r))
     print(self.obstacles)
+    
+  def condition_callback(self, msg):
+    self.condition = msg.data
   
   def publish_trajectory(self):
     traj = Trajectory()
