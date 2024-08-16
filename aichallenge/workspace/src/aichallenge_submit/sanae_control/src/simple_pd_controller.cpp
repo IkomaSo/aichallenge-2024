@@ -96,21 +96,21 @@ void SimplePDController::onTimer() {
       use_external_target_vel_ ? external_target_vel_
                                : closet_traj_point.longitudinal_velocity_mps;
 
-  std::cout << "longitudinal velocity: " << velocity_->longitudinal_velocity
-            << std::endl;
+  // std::cout << "longitudinal velocity: " << velocity_->longitudinal_velocity
+  //           << std::endl;
+
+  double current_longitudinal_vel =  velocity_->longitudinal_velocity;
+
 
   if (length < stop_position_threshold_) {
     double Kp = -std::pow(stop_omega_, 2);
-    double Kd = -2.0 * stop_omega_;
+    double Kd = -4.0 * stop_omega_;
     cmd.longitudinal.speed = 0.0;
     cmd.longitudinal.acceleration =
         Kp * (-length) + Kd * velocity_->longitudinal_velocity;
     std::cout << "stop position control: acc = "
               << cmd.longitudinal.acceleration << std::endl;
   } else {
-
-    // calc longitudinal speed and acceleration
-    double current_longitudinal_vel =  velocity_->longitudinal_velocity;
 
     cmd.longitudinal.speed = target_longitudinal_vel;
     cmd.longitudinal.acceleration =
@@ -121,7 +121,7 @@ void SimplePDController::onTimer() {
   // calc lateral control
   //// calc lookahead distance
   double lookahead_distance =
-      lookahead_gain_ * target_longitudinal_vel + lookahead_min_distance_;
+      lookahead_gain_ * current_longitudinal_vel + lookahead_min_distance_;
   //// calc center coordinate of rear wheel
   double rear_x =
       odometry_->pose.pose.position.x -
@@ -150,6 +150,11 @@ void SimplePDController::onTimer() {
   double fb_yaw = steering_angle_derivative_gain_ * yaw_err;
   double steering_angle = ff_steering_angle - fb_lat - fb_yaw;
   cmd.lateral.steering_tire_angle = steering_angle;
+
+  // if (!is_stop and std::abs(steering_angle) < 0.2) {
+  //   cmd.longitudinal.acceleration  = speed_proportional_gain_ *
+  //                                           external_target_vel_;
+  // } 
 
   pub_cmd_->publish(cmd);
 }

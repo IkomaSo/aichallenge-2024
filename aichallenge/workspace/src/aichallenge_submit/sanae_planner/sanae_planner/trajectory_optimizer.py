@@ -69,7 +69,7 @@ class CasADiOptimizer:
               'max_iter':100}
     self.opti.solver('ipopt', p_opts, s_opts)
     
-    self.opti.minimize(1.*self.L - 1.*self.Dot + 30.*self.Obst)
+    self.opti.minimize(1.*self.L - 10.*self.Dot + 30.*self.Obst)
     # self.opti.callback(lambda i: self.plot_traj(self.opti.debug.value(self.X)))
     # self.opti.callback(lambda i: print(f'iter: {i} L: {self.opti.debug.value(self.L)} Dot: {self.opti.debug.value(self.Dot)} Obst: {self.opti.debug.value(self.Obst)}'))
     sol = self.opti.solve()
@@ -238,7 +238,7 @@ class TrajectoryOptimizer(Node):
     
 
   def odom_callback(self, msg):
-    self.get_logger().info('Received odometry message')
+    # self.get_logger().info('Received odometry message')
     self.odom = msg
     _, idx = self.cl_nn.kneighbors(np.array([[msg.pose.pose.position.x, msg.pose.pose.position.y]]))
     self.current_idx = idx[0][0]
@@ -251,7 +251,7 @@ class TrajectoryOptimizer(Node):
         self.pitstop = True
       else :
         self.pitstop = False
-    print(f'Current index: {self.current_idx}, prev index: {self.prev_pos_idx}, lap: {self.lap}, pit_dist: {pit_dist}, pitstop: {self.pitstop}, in_pit: {self.in_pit}')
+    # print(f'Current index: {self.current_idx}, prev index: {self.prev_pos_idx}, lap: {self.lap}, pit_dist: {pit_dist}, pitstop: {self.pitstop}, in_pit: {self.in_pit}')
     self.prev_pos_idx = self.current_idx
 
     if pit_dist < 2.0 and self.in_pit == False and self.pitstop:
@@ -267,14 +267,14 @@ class TrajectoryOptimizer(Node):
       self.publish_trajectory()
     
   def obst_callback(self, msg):
-    print(msg.data)
+    # print(msg.data)
     self.obstacles = []
     for i in range(0, len(msg.data), 4):
       x = msg.data[i]
       y = msg.data[i + 1]
       r = msg.data[i + 3]
       self.obstacles.append((x, y, r))
-    print(self.obstacles)
+    # print(self.obstacles)
     
   def condition_callback(self, msg):
     self.condition = msg.data
@@ -311,7 +311,7 @@ class TrajectoryOptimizer(Node):
       traj_point.pose.orientation.y = q[1]
       traj_point.pose.orientation.z = q[2]
       traj_point.pose.orientation.w = q[3]
-      traj_point.longitudinal_velocity_mps = 30.0 / 3.6
+      traj_point.longitudinal_velocity_mps = 180.0 / 3.6
       # if self.pitstop:
       #   dist = ((pit_idx - idx + self.traj_points) % self.traj_points) / self.traj_points
       #   vel = max(dist * 30.0 / 3.6 * 4.0, 5.0 / 3.6)

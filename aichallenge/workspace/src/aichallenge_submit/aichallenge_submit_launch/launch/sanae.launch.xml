@@ -215,7 +215,7 @@
 
   <node pkg="sanae_control" exec="simple_pd_controller" name="simple_pd_controller" output="screen">
     <param name="use_external_target_vel" value="false"/>
-    <param name="external_target_vel" value="0.0"/>
+    <param name="external_target_vel" value="50.0"/>
     <param name="steering_angle_proportional_gain" value="0.047"/>
     <param name="steering_angle_derivative_gain" value="0.4"/> 
     <param name="lookahead_gain" value="0.185"/>
