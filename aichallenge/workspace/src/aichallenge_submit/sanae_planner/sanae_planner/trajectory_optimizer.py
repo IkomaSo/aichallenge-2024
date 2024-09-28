@@ -52,7 +52,10 @@ class CasADiOptimizer:
       self.opti.subject_to(self.X[0, pit_idx] == pit_dist)
       ignore_idx.append(pit_idx)
         
-      wp_idx = self.center_line_map.get_nearest_idx(PIT_WAYPOINT_X, PIT_WAYPOINT_Y)
+      wp_vec = np.array([PIT_WAYPOINT_X - PIT_X, PIT_WAYPOINT_Y - PIT_Y])
+      wp_vec /= np.linalg.norm(wp_vec)
+      wp_len = 5
+      wp_idx = self.center_line_map.get_nearest_idx(PIT_X + wp_vec[0] * wp_len, PIT_Y + wp_vec[1] * wp_len)
       wp_dist = ((self.center_line_map.eq_cl_x[wp_idx] - PIT_WAYPOINT_X)**2 + (self.center_line_map.eq_cl_y[wp_idx] - PIT_WAYPOINT_Y)**2)**0.5
       self.opti.subject_to(self.X[0, wp_idx] == wp_dist)
       ignore_idx.append(wp_idx)
@@ -69,7 +72,7 @@ class CasADiOptimizer:
               'max_iter':100}
     self.opti.solver('ipopt', p_opts, s_opts)
     
-    self.opti.minimize(1.*self.L - 10.*self.Dot + 30.*self.Obst)
+    self.opti.minimize(1.*self.L - 20.*self.Dot + 30.*self.Obst)
     # self.opti.callback(lambda i: self.plot_traj(self.opti.debug.value(self.X)))
     # self.opti.callback(lambda i: print(f'iter: {i} L: {self.opti.debug.value(self.L)} Dot: {self.opti.debug.value(self.Dot)} Obst: {self.opti.debug.value(self.Obst)}'))
     sol = self.opti.solve()
@@ -195,6 +198,7 @@ class TrajectoryOptimizer(Node):
     self.prev_pos_idx = -1
     self.condition = 0
     self.optimizing = False
+    self.pause_opti = False
     while self.odom is None:
       self.get_logger().info('Waiting for odometry message...')
       rclpy.spin_once(self)
@@ -209,10 +213,10 @@ class TrajectoryOptimizer(Node):
   def opti_loop(self):
     while rclpy.ok():
       self.optimize_trajectory()
-      time.sleep(5)
+      time.sleep(2)
   
   def optimize_trajectory(self):
-    if self.optimizing:
+    if self.optimizing or self.pause_opti:
       return
     self.optimizing = True
     self.get_logger().info('Optimizing trajectory...')
@@ -257,11 +261,16 @@ class TrajectoryOptimizer(Node):
     if pit_dist < 2.0 and self.in_pit == False and self.pitstop:
       self.in_pit = True
       self.pitstop = False
+      while self.optimizing:
+        time.sleep(0.1)
+      self.optimize_trajectory()
+      self.pause_opti = True
       self.pitin_start = time.time()
       
     if self.in_pit and self.condition < 100:
       self.in_pit = False
       self.pitstop = False
+      self.pause_opti = False
       
     if not self.in_pit: 
       self.publish_trajectory()
@@ -311,7 +320,7 @@ class TrajectoryOptimizer(Node):
       traj_point.pose.orientation.y = q[1]
       traj_point.pose.orientation.z = q[2]
       traj_point.pose.orientation.w = q[3]
-      traj_point.longitudinal_velocity_mps = 180.0 / 3.6
+      traj_point.longitudinal_velocity_mps = 190.0 / 3.6
       # if self.pitstop:
       #   dist = ((pit_idx - idx + self.traj_points) % self.traj_points) / self.traj_points
       #   vel = max(dist * 30.0 / 3.6 * 4.0, 5.0 / 3.6)
