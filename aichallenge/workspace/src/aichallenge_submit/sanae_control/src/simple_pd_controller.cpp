@@ -6,7 +6,6 @@
 #include <tf2/utils.h>
 
 #include <algorithm>
-#include <random>
 
 namespace sanae_control {
 
@@ -97,9 +96,6 @@ void SimplePDController::onTimer() {
       use_external_target_vel_ ? external_target_vel_
                                : closet_traj_point.longitudinal_velocity_mps;
 
-  // std::cout << "longitudinal velocity: " << velocity_->longitudinal_velocity
-  //           << std::endl;
-
   double current_longitudinal_vel = velocity_->longitudinal_velocity;
 
   if (length < stop_position_threshold_) {
@@ -111,21 +107,10 @@ void SimplePDController::onTimer() {
     std::cout << "stop position control: acc = "
               << cmd.longitudinal.acceleration << std::endl;
   } else {
-    if (length < stop_position_threshold_ * 2) {
-      target_longitudinal_vel = 30.0 / 3.6;
-      if (current_longitudinal_vel > 33.0 / 3.6) {
-        target_longitudinal_vel = 20.0 / 3.6;
-      }
-      cmd.longitudinal.speed = target_longitudinal_vel;
-      cmd.longitudinal.acceleration =
-          speed_proportional_gain_ *
-          (target_longitudinal_vel - current_longitudinal_vel);
-    } else {
     cmd.longitudinal.speed = target_longitudinal_vel;
-    static std::mt19937_64 mt64(0);
     cmd.longitudinal.acceleration =
-        current_longitudinal_vel > 38.0 / 3.6 ? 3.2 : 480;
-    }
+        speed_proportional_gain_ *
+        (target_longitudinal_vel - current_longitudinal_vel);
   }
 
   // calc lateral control
@@ -160,13 +145,6 @@ void SimplePDController::onTimer() {
   double fb_yaw = steering_angle_derivative_gain_ * yaw_err;
   double steering_angle = ff_steering_angle - fb_lat - fb_yaw;
 
-  if (std::abs(steering_angle) > 0.14 && cmd.longitudinal.acceleration > 3.2) {
-    cmd.longitudinal.acceleration = 3.2;
-    if ( current_longitudinal_vel > 40.0 / 3.6) {
-      cmd.longitudinal.acceleration = -1.5;
-    }
-  }
-  
   cmd.lateral.steering_tire_angle = steering_angle;
   cmd.lateral.steering_tire_rotation_rate = 2.0;
 
