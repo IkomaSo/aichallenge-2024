@@ -320,7 +320,7 @@ class TrajectoryOptimizer(Node):
       traj_point.pose.orientation.y = q[1]
       traj_point.pose.orientation.z = q[2]
       traj_point.pose.orientation.w = q[3]
-      traj_point.longitudinal_velocity_mps = 190.0 / 3.6
+      traj_point.longitudinal_velocity_mps = 50.0 / 3.6
       # if self.pitstop:
       #   dist = ((pit_idx - idx + self.traj_points) % self.traj_points) / self.traj_points
       #   vel = max(dist * 30.0 / 3.6 * 4.0, 5.0 / 3.6)
