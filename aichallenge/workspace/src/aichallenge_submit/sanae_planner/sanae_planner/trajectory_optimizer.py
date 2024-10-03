@@ -22,11 +22,11 @@ PIT_WAYPOINT_X = 89630.0390625
 PIT_WAYPOINT_Y = 43130.05859375
 
 class CasADiOptimizer:
-  def __init__(self, center_line_map, n_points, cource_margin):
+  def __init__(self, center_line_map, n_points, course_margin):
     # コース１周をn_pointsで分割したmap
     self.center_line_map = center_line_map
     self.n_points = n_points
-    self.cource_margin = cource_margin
+    self.course_margin = course_margin
     
   # st_idxから一周分の経路を最適化する
   def optimize(self, st_idx, deviations, obstacles, init_sol, pitstop=False):
@@ -61,7 +61,7 @@ class CasADiOptimizer:
       ignore_idx.append(wp_idx)
       
       
-    self.set_cource_subject(ignore_idx, self.cource_margin)
+    self.set_course_subject(ignore_idx, self.course_margin)
     
     p_opts={}
     # s_opts = {'print_level':0}
@@ -80,7 +80,7 @@ class CasADiOptimizer:
     return sol.value(self.X)
   
     
-  def set_cource_subject(self, ignore_idx, margin):
+  def set_course_subject(self, ignore_idx, margin):
     for i in range(self.n_points):
       if i in ignore_idx:
         continue
@@ -171,7 +171,7 @@ class TrajectoryOptimizer(Node):
     self.declare_parameter('opti_points', 200)
     self.declare_parameter('opti_ahead', 0)
     self.declare_parameter('wheel_base', 1.087)
-    self.declare_parameter('cource_margin', 2.4)
+    self.declare_parameter('course_margin', 2.4)
     
     self.traj_pub = self.create_publisher(Trajectory, '/planning/scenario_planning/trajectory', 10)
     self.odom_sub = self.create_subscription(Odometry, 'input/odom', self.odom_callback, 10)
@@ -185,7 +185,7 @@ class TrajectoryOptimizer(Node):
     self.wheel_base = self.get_parameter('wheel_base').value
     self.center_line_map = CenterLineMap(self.map_path, self.opti_points)
     self.cl_nn = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(np.array([self.center_line_map.eq_cl_x, self.center_line_map.eq_cl_y]).T)
-    self.optimizer = CasADiOptimizer(self.center_line_map, self.opti_points, self.get_parameter('cource_margin').value)
+    self.optimizer = CasADiOptimizer(self.center_line_map, self.opti_points, self.get_parameter('course_margin').value)
     self.odom = None
     self.obstacles = []
     self.deviations = np.zeros(self.opti_points)
