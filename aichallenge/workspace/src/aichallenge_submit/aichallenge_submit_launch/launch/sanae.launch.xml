@@ -225,7 +225,7 @@
     <param name="steering_angle_derivative_gain" value="0.4"/> 
     <param name="lookahead_gain" value="0.185"/>
     <param name="lookahead_min_distance" value="0."/>
-    <param name="speed_proportional_gain" value="10.0"/>
+    <param name="speed_proportional_gain" value="1.0"/>
     <param name="stop_position_threshold" value="13.0"/>
     <param name="stop_omega" value="2.0"/>
 

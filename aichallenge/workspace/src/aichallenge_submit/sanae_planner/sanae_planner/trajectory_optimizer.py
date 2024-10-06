@@ -22,19 +22,18 @@ PIT_WAYPOINT_X = 89630.0390625
 PIT_WAYPOINT_Y = 43130.05859375
 
 class CasADiOptimizer:
-  def __init__(self, center_line_map, n_points, course_margin):
+  def __init__(self, center_line_map, n_points):
     # コース１周をn_pointsで分割したmap
     self.center_line_map = center_line_map
     self.n_points = n_points
-    self.course_margin = course_margin
     
-  # st_idxから一周分の経路を最適化する
-  def optimize(self, st_idx, deviations, obstacles, init_sol, pitstop=False):
+  # st_idxから一周分の経路を最適化するself.Obst
+  def optimize(self, st_idx, deviations, obstacles, init_sol, curve_weight, course_margin, pitstop=False):
     self.opti = casadi.Opti()
     self.X = self.opti.variable(1, self.n_points)
     self.opti.set_initial(self.X, init_sol)
     self.L, self.Dot = self.get_traj_length()
-    self.Obst = self.get_obstacle_constraints(obstacles)
+    # self.Obst = self.get_obstacle_constraints(obstacles)
     
     # 初期条件
     self.init_len = 10
@@ -61,7 +60,7 @@ class CasADiOptimizer:
       ignore_idx.append(wp_idx)
       
       
-    self.set_course_subject(ignore_idx, self.course_margin)
+    self.set_course_subject(ignore_idx, course_margin)
     
     p_opts={}
     # s_opts = {'print_level':0}
@@ -72,7 +71,8 @@ class CasADiOptimizer:
               'max_iter':100}
     self.opti.solver('ipopt', p_opts, s_opts)
     
-    self.opti.minimize(1.*self.L - 20.*self.Dot + 30.*self.Obst)
+    # self.opti.minimize(1.*self.L - 20.*self.Dot + 30.*self.Obst)
+    self.opti.minimize(1.*self.L - curve_weight*self.Dot)
     # self.opti.callback(lambda i: self.plot_traj(self.opti.debug.value(self.X)))
     # self.opti.callback(lambda i: print(f'iter: {i} L: {self.opti.debug.value(self.L)} Dot: {self.opti.debug.value(self.Dot)} Obst: {self.opti.debug.value(self.Obst)}'))
     sol = self.opti.solve()
@@ -172,6 +172,8 @@ class TrajectoryOptimizer(Node):
     self.declare_parameter('opti_ahead', 0)
     self.declare_parameter('wheel_base', 1.087)
     self.declare_parameter('course_margin', 2.4)
+    self.declare_parameter('curve_weight', 20.0)
+    self.declare_parameter('speed_km_h', 50.0)
     
     self.traj_pub = self.create_publisher(Trajectory, '/planning/scenario_planning/trajectory', 10)
     self.odom_sub = self.create_subscription(Odometry, 'input/odom', self.odom_callback, 10)
@@ -185,7 +187,10 @@ class TrajectoryOptimizer(Node):
     self.wheel_base = self.get_parameter('wheel_base').value
     self.center_line_map = CenterLineMap(self.map_path, self.opti_points)
     self.cl_nn = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(np.array([self.center_line_map.eq_cl_x, self.center_line_map.eq_cl_y]).T)
-    self.optimizer = CasADiOptimizer(self.center_line_map, self.opti_points, self.get_parameter('course_margin').value)
+    self.optimizer = CasADiOptimizer(self.center_line_map, self.opti_points)
+    self.curve_weight = None
+    self.course_margin = None
+    self.speed_km_h = self.get_parameter('speed_km_h').value
     self.odom = None
     self.obstacles = []
     self.deviations = np.zeros(self.opti_points)
@@ -199,16 +204,23 @@ class TrajectoryOptimizer(Node):
     self.condition = 0
     self.optimizing = False
     self.pause_opti = False
+    
     while self.odom is None:
       self.get_logger().info('Waiting for odometry message...')
       rclpy.spin_once(self)
-    self.optimize_trajectory()
-    self.opti_thread = threading.Thread(target=self.opti_loop)
-    self.opti_thread.start()
-    # self.create_timer(5, self.timer_callback)
-    
+    # self.optimize_trajectory()
+    # self.opti_thread = threading.Thread(target=self.opti_loop)
+    # self.opti_thread.start()
+    self.create_timer(1, self.timer_callback)
+        
   def timer_callback(self):
-    self.optimize_trajectory()
+    # humbleのrclpyにParamEventHandlersがないのでやむなし
+    if self.course_margin != self.get_parameter('course_margin').value or self.curve_weight != self.get_parameter('curve_weight').value or self.speed_km_h != self.get_parameter('speed_km_h').value:
+      self.course_margin = self.get_parameter('course_margin').value
+      self.curve_weight = self.get_parameter('curve_weight').value
+      self.speed_km_h = self.get_parameter('speed_km_h').value
+      self.get_logger().info('Parameters updated \nCourse margin: {self.course_margin} \nCurve weight: {self.curve_weight} \nSpeed: {self.speed_km_h}')
+      self.optimize_trajectory()
     
   def opti_loop(self):
     while rclpy.ok():
@@ -224,9 +236,9 @@ class TrajectoryOptimizer(Node):
     sol = None
     try:
       st = time.time()
-      sol = self.optimizer.optimize(st_idx, self.deviations, self.obstacles, np.zeros(self.opti_points), self.pitstop)
+      sol = self.optimizer.optimize(st_idx, self.deviations, self.obstacles, np.zeros(self.opti_points), self.curve_weight, self.course_margin, self.pitstop)
       
-      print(f'Optimization time: {time.time() - st}')
+      self.get_logger().info(f'Optimization time: {time.time() - st}')
     except Exception as e:
       self.get_logger().error(f'Optimization failed: {e}')
       self.optimizing = False
@@ -320,7 +332,7 @@ class TrajectoryOptimizer(Node):
       traj_point.pose.orientation.y = q[1]
       traj_point.pose.orientation.z = q[2]
       traj_point.pose.orientation.w = q[3]
-      traj_point.longitudinal_velocity_mps = 50.0 / 3.6
+      traj_point.longitudinal_velocity_mps = self.speed_km_h / 3.6
       # if self.pitstop:
       #   dist = ((pit_idx - idx + self.traj_points) % self.traj_points) / self.traj_points
       #   vel = max(dist * 30.0 / 3.6 * 4.0, 5.0 / 3.6)
