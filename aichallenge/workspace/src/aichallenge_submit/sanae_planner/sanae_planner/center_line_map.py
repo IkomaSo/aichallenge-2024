@@ -42,7 +42,6 @@ class CenterLineMap:
     self.nearest_rb_dist = self.nearest_rb_dist.T[0]
     
     # self.plot_map()
-    
   def load_map(self, lanelet2_path):
     tree = ET.parse(lanelet2_path)
     osm = tree.getroot()

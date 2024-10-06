@@ -29,6 +29,12 @@ class SimplePDController : public rclcpp::Node {
   rclcpp::Subscription<Odometry>::SharedPtr sub_kinematics_;
   rclcpp::Subscription<VelocityReport>::SharedPtr sub_velocity_;
   rclcpp::Subscription<Trajectory>::SharedPtr sub_trajectory_;
+  std::shared_ptr<rclcpp::ParameterEventHandler> sub_param_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> cb1_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> cb2_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> cb3_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> cb4_handle_;
+
   
   // publishers
   rclcpp::Publisher<AckermannControlCommand>::SharedPtr pub_cmd_;
@@ -46,11 +52,11 @@ class SimplePDController : public rclcpp::Node {
 
   // pd controller parameters
   const double wheel_base_;
-  const double steering_angle_proportional_gain_;
-  const double steering_angle_derivative_gain_;
-  const double lookahead_gain_;
+  double steering_angle_proportional_gain_;
+  double steering_angle_derivative_gain_;
+  double lookahead_gain_;
   const double lookahead_min_distance_;
-  const double speed_proportional_gain_;
+  double speed_proportional_gain_;
   const bool use_external_target_vel_;
   const double external_target_vel_;
   const double stop_omega_;
