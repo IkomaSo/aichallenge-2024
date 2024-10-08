@@ -30,10 +30,11 @@ class SimplePDController : public rclcpp::Node {
   rclcpp::Subscription<VelocityReport>::SharedPtr sub_velocity_;
   rclcpp::Subscription<Trajectory>::SharedPtr sub_trajectory_;
   std::shared_ptr<rclcpp::ParameterEventHandler> sub_param_;
-  std::shared_ptr<rclcpp::ParameterCallbackHandle> cb1_handle_;
-  std::shared_ptr<rclcpp::ParameterCallbackHandle> cb2_handle_;
-  std::shared_ptr<rclcpp::ParameterCallbackHandle> cb3_handle_;
-  std::shared_ptr<rclcpp::ParameterCallbackHandle> cb4_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> steer_p_cb_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> steer_d_cb_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> lookahead_gain_cb_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> lookahead_min_cb_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> speed_p_gain_cb_handle_;
 
   
   // publishers
@@ -55,7 +56,7 @@ class SimplePDController : public rclcpp::Node {
   double steering_angle_proportional_gain_;
   double steering_angle_derivative_gain_;
   double lookahead_gain_;
-  const double lookahead_min_distance_;
+  double lookahead_min_distance_;
   double speed_proportional_gain_;
   const bool use_external_target_vel_;
   const double external_target_vel_;

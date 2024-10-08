@@ -46,45 +46,48 @@ SimplePDController::SimplePDController()
   sub_trajectory_ = create_subscription<Trajectory>(
       "input/trajectory", 1,
       [this](const Trajectory::SharedPtr msg) { trajectory_ = msg; });
-  //dev/dynamic_control_param, subscriber for monitoring parameter changes
+  // dev/dynamic_control_param, subscriber for monitoring parameter changes
   sub_param_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
-  auto cb1 = [this](const rclcpp::Parameter & p){
-    RCLCPP_INFO(
-      this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
-      p.get_name().c_str(),
-      steering_angle_proportional_gain_,
-      p.as_double());
-      steering_angle_proportional_gain_ = p.as_double();
-  };
-  cb1_handle_ = sub_param_->add_parameter_callback("steering_angle_proportional_gain", cb1);
-  auto cb2 = [this](const rclcpp::Parameter & p){
-    RCLCPP_INFO(
-      this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
-      p.get_name().c_str(),
-      steering_angle_derivative_gain_,
-      p.as_double());
-      steering_angle_derivative_gain_ = p.as_double();
-  };
-  cb2_handle_ = sub_param_->add_parameter_callback("steering_angle_derivative_gain", cb2);
-  auto cb3 = [this](const rclcpp::Parameter & p){
-    RCLCPP_INFO(
-      this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
-      p.get_name().c_str(),
-      lookahead_gain_,
-      p.as_double());
-      lookahead_gain_ = p.as_double();
-  };
-  cb3_handle_ = sub_param_->add_parameter_callback("lookahead_gain", cb3);
-  auto cb4 = [this](const rclcpp::Parameter & p){
-    RCLCPP_INFO(
-      this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
-      p.get_name().c_str(),
-      speed_proportional_gain_,
-      p.as_double());
-      speed_proportional_gain_ = p.as_double();
-  };
-  cb4_handle_ = sub_param_->add_parameter_callback("speed_proportional_gain", cb4);
 
+  auto steer_p_cb = [this](const rclcpp::Parameter &p) {
+    RCLCPP_INFO(this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
+                p.get_name().c_str(), steering_angle_proportional_gain_,
+                p.as_double());
+    steering_angle_proportional_gain_ = p.as_double();
+  };
+  steer_p_cb_handle_ = sub_param_->add_parameter_callback(
+      "steering_angle_proportional_gain", steer_p_cb);
+
+  auto steer_d_cb = [this](const rclcpp::Parameter &p) {
+    RCLCPP_INFO(this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
+                p.get_name().c_str(), steering_angle_derivative_gain_,
+                p.as_double());
+    steering_angle_derivative_gain_ = p.as_double();
+  };
+  steer_d_cb_handle_ =
+      sub_param_->add_parameter_callback("steering_angle_derivative_gain", steer_d_cb);
+
+  auto lookahead_gain_cb = [this](const rclcpp::Parameter &p) {
+    RCLCPP_INFO(this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
+                p.get_name().c_str(), lookahead_gain_, p.as_double());
+    lookahead_gain_ = p.as_double();
+  };
+  lookahead_gain_cb_handle_ = sub_param_->add_parameter_callback("lookahead_gain", lookahead_gain_cb);
+
+  auto lookahead_min_cb = [this](const rclcpp::Parameter &p) {
+    RCLCPP_INFO(this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
+                p.get_name().c_str(), lookahead_min_distance_, p.as_double());
+    lookahead_min_distance_ = p.as_double();
+  };
+  lookahead_min_cb_handle_ = sub_param_->add_parameter_callback("lookahead_min", lookahead_min_cb);
+
+  auto speed_p_gain_cb = [this](const rclcpp::Parameter &p) {
+    RCLCPP_INFO(this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
+                p.get_name().c_str(), speed_proportional_gain_, p.as_double());
+    speed_proportional_gain_ = p.as_double();
+  };
+  speed_p_gain_cb_handle_ =
+      sub_param_->add_parameter_callback("speed_proportional_gain", speed_p_gain_cb);
 
   using namespace std::literals::chrono_literals;
   timer_ = rclcpp::create_timer(this, get_clock(), 8ms,
