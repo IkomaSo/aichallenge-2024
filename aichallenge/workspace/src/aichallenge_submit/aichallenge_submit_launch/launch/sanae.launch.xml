@@ -210,7 +210,9 @@
         <param name="opti_points" value="120"/>
         <param name="opti_ahead" value="0"/>
         <param name="wheel_base" value="1.087"/>
-        <param name="course_margin" value="1.6"/>
+        <param name="course_margin" value="2.4"/>
+        <param name="curve_weight" value="50.0"/>
+        <param name="speed_km_h" value="10.0"/>
         <remap from="input/odom" to="/localization/kinematic_state"/>
         <remap from="output/trajectory" to="/planning/scenario_planning/trajectory"/>
       </node>
@@ -221,17 +223,18 @@
   <node pkg="sanae_control" exec="simple_pd_controller" name="simple_pd_controller" output="screen">
     <param name="use_external_target_vel" value="false"/>
     <param name="external_target_vel" value="50.0"/>
-    <param name="steering_angle_proportional_gain" value="0.047"/>
-    <param name="steering_angle_derivative_gain" value="0.4"/> 
+    <param name="steering_angle_proportional_gain" value="0.4"/>
+    <param name="steering_angle_derivative_gain" value="0.5"/> 
     <param name="lookahead_gain" value="0.185"/>
     <param name="lookahead_min_distance" value="0."/>
     <param name="speed_proportional_gain" value="1.0"/>
     <param name="stop_position_threshold" value="13.0"/>
-    <param name="stop_omega" value="2.0"/>
+    <param name="stop_omega" value="5.0"/>
 
     <remap from="input/kinematics" to="/localization/kinematic_state"/>
     <remap from="input/velocity" to="/vehicle/status/velocity_status"/>
     <remap from="input/trajectory" to="/planning/scenario_planning/trajectory"/>
+    <remap from="input/trigger" to="/control/command/trigger"/>
     <remap from="output/control_cmd" to="/control/command/control_cmd"/>
     <remap from="output/debug_marker" to="/control/pure_pursuit/debug_marker"/>
   </node>
