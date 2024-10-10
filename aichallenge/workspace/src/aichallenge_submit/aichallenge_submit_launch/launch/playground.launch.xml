@@ -44,6 +44,9 @@
   </group>
 
   <!-- Localization -->
+  <!-- sanae_launchにあわせて変更 -->
+  <let name="pose_additional_delay_var" value="0.5" />
+
   <group>
     <push-ros-namespace namespace="localization"/>
     <include file="$(find-pkg-share gyro_odometer)/launch/gyro_odometer.launch.xml">
@@ -58,7 +61,12 @@
     <include file="$(find-pkg-share ekf_localizer)/launch/ekf_localizer.launch.xml">
       <arg name="enable_yaw_bias_estimation" value="false"/>
       <arg name="tf_rate" value="50.0"/>
-      <arg name="twist_smoothing_steps" value="2"/>
+
+      <!-- sanae_launchにあわせて変更 -->
+      <!-- <arg name="twist_smoothing_steps" value="2"/> -->
+      <arg name="twist_smoothing_steps" value="1"/>
+      <arg name="pose_smoothing_steps" value="1"/>
+
       <arg name="input_initial_pose_name" value="/localization/imu_gnss_poser/pose_with_covariance"/>
       <arg name="input_pose_with_cov_name" value="/localization/imu_gnss_poser/pose_with_covariance"/>
       <arg name="input_twist_with_cov_name" value="/localization/twist_estimator/twist_with_covariance"/>
@@ -71,6 +79,10 @@
       <arg name="output_twist_with_covariance_name" value="twist_with_covariance"/>
       <arg name="proc_stddev_vx_c" value="10.0"/>
       <arg name="proc_stddev_wz_c" value="5.0"/>
+      <!-- sanae_launchにあわせて追加 -->
+      <arg name="pose_additional_delay" value="$(var pose_additional_delay_var)"/>
+      <arg name="extend_state_step" value="100"/>
+
     </include>
 
     <!-- twist2accel -->
