@@ -46,6 +46,10 @@ SimplePDController::SimplePDController()
   sub_trajectory_ = create_subscription<Trajectory>(
       "input/trajectory", 1,
       [this](const Trajectory::SharedPtr msg) { trajectory_ = msg; });
+  sub_trigger_ = create_subscription<std_msgs::msg::Empty>(
+      "input/trigger", 1, [this](const std_msgs::msg::Empty::SharedPtr) {
+        is_stop = !is_stop;
+      });
   // dev/dynamic_control_param, subscriber for monitoring parameter changes
   sub_param_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
 
@@ -148,6 +152,13 @@ void SimplePDController::onTimer() {
         Kp * (-length) + Kd * velocity_->longitudinal_velocity;
     std::cout << "stop position control: acc = "
               << cmd.longitudinal.acceleration << std::endl;
+  } else if (is_stop) {
+    double Kd = -4.0 * stop_omega_;
+    cmd.longitudinal.speed = 0.0;
+    cmd.longitudinal.acceleration =
+        Kd * velocity_->longitudinal_velocity;
+    std::cout << "emergency_stop: acc = "
+              << cmd.longitudinal.acceleration << std::endl;
   } else {
     cmd.longitudinal.speed = target_longitudinal_vel;
     cmd.longitudinal.acceleration =
@@ -189,11 +200,6 @@ void SimplePDController::onTimer() {
 
   cmd.lateral.steering_tire_angle = steering_angle;
   cmd.lateral.steering_tire_rotation_rate = 2.0;
-
-  // if (!is_stop and std::abs(steering_angle) < 0.2) {
-  //   cmd.longitudinal.acceleration  = speed_proportional_gain_ *
-  //                                           external_target_vel_;
-  // }
 
   pub_cmd_->publish(cmd);
 }

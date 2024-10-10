@@ -22,15 +22,18 @@ split-window -h -p 50
 
 # 2. 左側のペインを3つに分割
 select-pane -t 0         
-split-window -v -p 67  
+split-window -v -p 50
+select-pane -t 0
+split-window -v -p 50
+select-pane -t 2
 split-window -v -p 50 
 
 # 3. 右側のペインを選択して上下に 4 回分割
-select-pane -t 3 
+select-pane -t 4 
 split-window -v -p 50
-select-pane -t 3
+select-pane -t 4
 split-window -v -p 50
-select-pane -t 5
+select-pane -t 6
 split-window -v -p 50 
 
 select-pane -t 0
@@ -55,21 +58,27 @@ select-pane -t 3
 send-keys "set -x" C-m
 send-keys "$AIC_WORKSPACE_CD_CMD" C-m
 send-keys "$SOURCE_CMD" C-m
-send-keys "./change_param.bash $CONTROL_NODE_NAME steering_angle_proportional_gain steer_p" C-m
+send-keys "./emergency.py" C-m
 
 select-pane -t 4
 send-keys "set -x" C-m
 send-keys "$AIC_WORKSPACE_CD_CMD" C-m
 send-keys "$SOURCE_CMD" C-m
-send-keys "./change_param.bash $CONTROL_NODE_NAME steering_angle_derivative_gain steer_d" C-m
+send-keys "./change_param.bash $CONTROL_NODE_NAME steering_angle_proportional_gain steer_p" C-m
 
 select-pane -t 5
 send-keys "set -x" C-m
 send-keys "$AIC_WORKSPACE_CD_CMD" C-m
 send-keys "$SOURCE_CMD" C-m
-send-keys "./change_param.bash $CONTROL_NODE_NAME lookahead_gain look_gain" C-m
+send-keys "./change_param.bash $CONTROL_NODE_NAME steering_angle_derivative_gain steer_d" C-m
 
 select-pane -t 6
+send-keys "set -x" C-m
+send-keys "$AIC_WORKSPACE_CD_CMD" C-m
+send-keys "$SOURCE_CMD" C-m
+send-keys "./change_param.bash $CONTROL_NODE_NAME lookahead_gain look_gain" C-m
+
+select-pane -t 7
 send-keys "set -x" C-m
 send-keys "$AIC_WORKSPACE_CD_CMD" C-m
 send-keys "$SOURCE_CMD" C-m

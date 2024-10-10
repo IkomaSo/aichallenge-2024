@@ -10,6 +10,7 @@
 #include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <std_msgs/msg/empty.hpp>
 
 namespace sanae_control {
 
@@ -29,6 +30,7 @@ class SimplePDController : public rclcpp::Node {
   rclcpp::Subscription<Odometry>::SharedPtr sub_kinematics_;
   rclcpp::Subscription<VelocityReport>::SharedPtr sub_velocity_;
   rclcpp::Subscription<Trajectory>::SharedPtr sub_trajectory_;
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr sub_trigger_;
   std::shared_ptr<rclcpp::ParameterEventHandler> sub_param_;
   std::shared_ptr<rclcpp::ParameterCallbackHandle> steer_p_cb_handle_;
   std::shared_ptr<rclcpp::ParameterCallbackHandle> steer_d_cb_handle_;
@@ -67,6 +69,8 @@ class SimplePDController : public rclcpp::Node {
  private:
   void onTimer();
   bool subscribeMessageAvailable();
+
+  bool is_stop = false;
 };
 
 }  // namespace sanae_control
