@@ -39,10 +39,10 @@ class CasADiOptimizer:
     self.init_len = 10
     self.st_idx = st_idx
     ignore_idx = []
-    for i in range(self.init_len):
-      idx = (st_idx + i) % self.n_points
-      self.opti.subject_to(self.X[0, idx] == deviations[idx])
-      ignore_idx.append(idx)
+    # for i in range(self.init_len):
+    #   idx = (st_idx + i) % self.n_points
+    #   self.opti.subject_to(self.X[0, idx] == deviations[idx])
+    #   ignore_idx.append(idx)
       
     # ピットに止まるとき
     if pitstop:
@@ -236,7 +236,7 @@ class TrajectoryOptimizer(Node):
     sol = None
     try:
       st = time.time()
-      sol = self.optimizer.optimize(st_idx, self.deviations, self.obstacles, np.zeros(self.opti_points), self.curve_weight, self.course_margin, self.pitstop)
+      sol = self.optimizer.optimize(st_idx, self.deviations, self.obstacles, np.zeros(self.opti_points), self.curve_weight, self.course_margin, False)
       
       self.get_logger().info(f'Optimization time: {time.time() - st}')
     except Exception as e:
@@ -246,7 +246,7 @@ class TrajectoryOptimizer(Node):
     self.get_logger().info('Optimization succeeded')
     devi_new = self.deviations.copy()
     # 2/3周分の経路を更新
-    for i in range(self.opti_points*9//10):
+    for i in range(self.opti_points):
       idx = (st_idx + i) % self.opti_points
       devi_new[idx] = sol[idx]
     self.deviations = devi_new
