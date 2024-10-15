@@ -8,6 +8,11 @@
   <arg name="sensor_model" default="racing_kart_sensor_kit" description="sensor model name"/>
   <arg name="simulation" description="used for sensor kit param"/>
 
+  <log message="The arguments for sanae_launch."/>
+  <log message=" - simulation: $(var simulation)"/>
+  <log message=" - use_sim_time: $(var use_sim_time)"/>
+  <log message=" - sensor_model: $(var sensor_model)"/>
+
   <!-- Optional parameters -->
   <!-- Map -->
   <arg name="lanelet2_map_file" default="custom_lanelet2_map.osm" description="lanelet2 map file name"/>
