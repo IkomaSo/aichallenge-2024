@@ -23,11 +23,13 @@
 #include <autoware_auto_control_msgs/msg/ackermann_control_command.hpp>
 #include <autoware_auto_vehicle_msgs/msg/gear_report.hpp>
 #include <autoware_auto_vehicle_msgs/msg/velocity_report.hpp>
+#include <autoware_auto_vehicle_msgs/msg/steering_report.hpp>
 #include <tier4_vehicle_msgs/msg/actuation_command_stamped.hpp>
 
 using autoware_auto_control_msgs::msg::AckermannControlCommand;
 using autoware_auto_vehicle_msgs::msg::GearReport;
 using autoware_auto_vehicle_msgs::msg::VelocityReport;
+using autoware_auto_vehicle_msgs::msg::SteeringReport;
 using tier4_vehicle_msgs::msg::ActuationCommandStamped;
 
 class ActuationCmdConverter : public rclcpp::Node
@@ -39,10 +41,12 @@ private:
   rclcpp::Subscription<ActuationCommandStamped>::SharedPtr sub_actuation_;
   rclcpp::Subscription<GearReport>::SharedPtr sub_gear_;
   rclcpp::Subscription<VelocityReport>::SharedPtr sub_velocity_;
+  rclcpp::Subscription<SteeringReport>::SharedPtr sub_steer_;
   rclcpp::Publisher<AckermannControlCommand>::SharedPtr pub_ackermann_;
 
   void on_actuation_cmd(const ActuationCommandStamped::ConstSharedPtr msg);
   void on_gear_report(const GearReport::ConstSharedPtr msg);
+  void on_steering_report(const SteeringReport::ConstSharedPtr msg);
   void on_velocity_report(const VelocityReport::ConstSharedPtr msg);
 
   double get_acceleration(const ActuationCommandStamped & cmd, const double velocity);
@@ -50,6 +54,11 @@ private:
   raw_vehicle_cmd_converter::BrakeMap brake_map_;
   GearReport::ConstSharedPtr gear_report_;
   VelocityReport::ConstSharedPtr velocity_report_;
+  SteeringReport::ConstSharedPtr steering_report_;
+  SteeringReport::ConstSharedPtr prev_steering_report_;
+
+  // Parameters
+  double max_steering_rotation_rate_;
 };
 
 #endif  // AUTOWARE_EXTERNAL_CMD_CONVERTER__NODE_HPP_

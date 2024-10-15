@@ -15,7 +15,8 @@
 #include "actuation_cmd_converter.hpp"
 
 ActuationCmdConverter::ActuationCmdConverter(const rclcpp::NodeOptions & node_options)
-: Node("actuation_cmd_converter", node_options)
+: Node("actuation_cmd_converter", node_options),
+  max_steering_rotation_rate_(declare_parameter<float>("max_steering_rotation_rate", 0.35))
 {
   using std::placeholders::_1;
 
@@ -28,6 +29,8 @@ ActuationCmdConverter::ActuationCmdConverter(const rclcpp::NodeOptions & node_op
     "/control/command/actuation_cmd", 1, std::bind(&ActuationCmdConverter::on_actuation_cmd, this, _1));
   sub_gear_ = create_subscription<GearReport>(
     "/vehicle/status/gear_status", 1, std::bind(&ActuationCmdConverter::on_gear_report, this, _1));
+  sub_steer_ = create_subscription<SteeringReport>(
+    "/vehicle/status/steering_status", 1, std::bind(&ActuationCmdConverter::on_steering_report, this, _1));
   sub_velocity_ = create_subscription<VelocityReport>(
     "/vehicle/status/velocity_status", 1, std::bind(&ActuationCmdConverter::on_velocity_report, this, _1));
 
@@ -55,6 +58,12 @@ void ActuationCmdConverter::on_velocity_report(const VelocityReport::ConstShared
   velocity_report_ = msg;
 }
 
+void ActuationCmdConverter::on_steering_report(const SteeringReport::ConstSharedPtr msg)
+{
+  prev_steering_report_ = steering_report_;
+  steering_report_ = msg;
+}
+
 void ActuationCmdConverter::on_actuation_cmd(const ActuationCommandStamped::ConstSharedPtr msg)
 {
   // Wait for input data
@@ -70,6 +79,14 @@ void ActuationCmdConverter::on_actuation_cmd(const ActuationCommandStamped::Cons
   AckermannControlCommand output;
   output.stamp = msg->header.stamp;
   output.lateral.steering_tire_angle = static_cast<float>(msg->actuation.steer_cmd);
+  // float dt = 0.06;
+  float dt = (rclcpp::Time(msg->header.stamp) - rclcpp::Time(prev_steering_report_->stamp)).seconds();
+  float steering_rotation_rate = (msg->actuation.steer_cmd - prev_steering_report_->steering_tire_angle) / dt;
+  if (steering_rotation_rate > max_steering_rotation_rate_) {
+    output.lateral.steering_tire_angle = prev_steering_report_->steering_tire_angle + max_steering_rotation_rate_ * dt;
+  } else if (steering_rotation_rate < -max_steering_rotation_rate_) {
+    output.lateral.steering_tire_angle = prev_steering_report_->steering_tire_angle - max_steering_rotation_rate_ * dt;
+  }
   output.lateral.steering_tire_rotation_rate = nan;
   output.longitudinal.speed = nan;
   output.longitudinal.acceleration = static_cast<float>(acceleration);
