@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'longitude_test = sys_id.longitude_test:main'
+            'longitude_test = sys_id.longitude_test:main',
+            'slip_detector = sys_id.slip_detector:main'
         ],
     },
 )
