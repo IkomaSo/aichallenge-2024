@@ -22,20 +22,20 @@
 
 #include <autoware_auto_control_msgs/msg/ackermann_control_command.hpp>
 #include <autoware_auto_vehicle_msgs/msg/gear_report.hpp>
-#include <autoware_auto_vehicle_msgs/msg/velocity_report.hpp>
 #include <autoware_auto_vehicle_msgs/msg/steering_report.hpp>
+#include <autoware_auto_vehicle_msgs/msg/velocity_report.hpp>
+#include <list>
 #include <tier4_vehicle_msgs/msg/actuation_command_stamped.hpp>
 
 using autoware_auto_control_msgs::msg::AckermannControlCommand;
 using autoware_auto_vehicle_msgs::msg::GearReport;
-using autoware_auto_vehicle_msgs::msg::VelocityReport;
 using autoware_auto_vehicle_msgs::msg::SteeringReport;
+using autoware_auto_vehicle_msgs::msg::VelocityReport;
 using tier4_vehicle_msgs::msg::ActuationCommandStamped;
 
-class ActuationCmdConverter : public rclcpp::Node
-{
+class ActuationCmdConverter : public rclcpp::Node {
 public:
-  explicit ActuationCmdConverter(const rclcpp::NodeOptions & node_options);
+  explicit ActuationCmdConverter(const rclcpp::NodeOptions &node_options);
 
 private:
   rclcpp::Subscription<ActuationCommandStamped>::SharedPtr sub_actuation_;
@@ -49,16 +49,21 @@ private:
   void on_steering_report(const SteeringReport::ConstSharedPtr msg);
   void on_velocity_report(const VelocityReport::ConstSharedPtr msg);
 
-  double get_acceleration(const ActuationCommandStamped & cmd, const double velocity);
+  double get_acceleration(const ActuationCommandStamped &cmd,
+                          const double velocity);
   raw_vehicle_cmd_converter::AccelMap accel_map_;
   raw_vehicle_cmd_converter::BrakeMap brake_map_;
   GearReport::ConstSharedPtr gear_report_;
   VelocityReport::ConstSharedPtr velocity_report_;
   SteeringReport::ConstSharedPtr steering_report_;
-  SteeringReport::ConstSharedPtr prev_steering_report_;
 
   // Parameters
   double max_steering_rotation_rate_;
+  int moving_average_window_size_;
+
+  std::list<SteeringReport> steering_list_;
+
+  double clip_steering(const ActuationCommandStamped::ConstSharedPtr cmd);
 };
 
-#endif  // AUTOWARE_EXTERNAL_CMD_CONVERTER__NODE_HPP_
+#endif // AUTOWARE_EXTERNAL_CMD_CONVERTER__NODE_HPP_

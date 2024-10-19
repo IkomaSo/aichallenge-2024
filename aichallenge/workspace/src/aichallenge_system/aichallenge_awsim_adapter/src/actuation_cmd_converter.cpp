@@ -16,7 +16,8 @@
 
 ActuationCmdConverter::ActuationCmdConverter(const rclcpp::NodeOptions & node_options)
 : Node("actuation_cmd_converter", node_options),
-  max_steering_rotation_rate_(declare_parameter<float>("max_steering_rotation_rate", 0.35))
+  max_steering_rotation_rate_(declare_parameter<float>("max_steering_rotation_rate", 0.35)),
+  moving_average_window_size_(declare_parameter<int>("moving_average_window_size", 3))
 {
   using std::placeholders::_1;
 
@@ -60,8 +61,10 @@ void ActuationCmdConverter::on_velocity_report(const VelocityReport::ConstShared
 
 void ActuationCmdConverter::on_steering_report(const SteeringReport::ConstSharedPtr msg)
 {
-  prev_steering_report_ = steering_report_;
-  steering_report_ = msg;
+  steering_list_.push_back(*msg);
+  if (steering_list_.size() > static_cast<size_t>(moving_average_window_size_)+1) {
+    steering_list_.pop_front();
+  }
 }
 
 void ActuationCmdConverter::on_actuation_cmd(const ActuationCommandStamped::ConstSharedPtr msg)
@@ -79,14 +82,7 @@ void ActuationCmdConverter::on_actuation_cmd(const ActuationCommandStamped::Cons
   AckermannControlCommand output;
   output.stamp = msg->header.stamp;
   output.lateral.steering_tire_angle = static_cast<float>(msg->actuation.steer_cmd);
-  // float dt = 0.06;
-  float dt = (rclcpp::Time(msg->header.stamp) - rclcpp::Time(prev_steering_report_->stamp)).seconds();
-  float steering_rotation_rate = (msg->actuation.steer_cmd - prev_steering_report_->steering_tire_angle) / dt;
-  if (steering_rotation_rate > max_steering_rotation_rate_) {
-    output.lateral.steering_tire_angle = prev_steering_report_->steering_tire_angle + max_steering_rotation_rate_ * dt;
-  } else if (steering_rotation_rate < -max_steering_rotation_rate_) {
-    output.lateral.steering_tire_angle = prev_steering_report_->steering_tire_angle - max_steering_rotation_rate_ * dt;
-  }
+  output.lateral.steering_tire_angle = static_cast<float>(clip_steering(msg));
   output.lateral.steering_tire_rotation_rate = nan;
   output.longitudinal.speed = nan;
   output.longitudinal.acceleration = static_cast<float>(acceleration);
@@ -103,6 +99,41 @@ double ActuationCmdConverter::get_acceleration(const ActuationCommandStamped & c
     brake_map_.getAcceleration(-desired_pedal, velocity, ref_acceleration);
   }
   return ref_acceleration;
+}
+
+double ActuationCmdConverter::clip_steering(const ActuationCommandStamped::ConstSharedPtr cmd)
+{
+  if (steering_list_.size() <= static_cast<size_t>(moving_average_window_size_)) {
+    return 0.0;
+  }
+
+  double angle_a = 0.0;
+  double time_a  = 0.0;
+  auto steer_itr = steering_list_.begin();
+  for (int i = 0; i < moving_average_window_size_; ++i) {
+    double time = steer_itr->stamp.sec + steer_itr->stamp.nanosec * 1e-9;
+    angle_a += steer_itr->steering_tire_angle * time;
+    time_a += time;
+    ++steer_itr;
+  }
+
+  angle_a /= time_a;
+  time_a /= moving_average_window_size_;
+
+  double cmd_time = cmd->header.stamp.sec + cmd->header.stamp.nanosec * 1e-9;
+  double steer_velocity = (cmd->actuation.steer_cmd - angle_a) / (cmd_time - time_a);
+
+  if (steer_velocity > max_steering_rotation_rate_) {
+    double msg_time = cmd->header.stamp.sec + cmd->header.stamp.nanosec * 1e-9;
+    double dt = msg_time - time_a;
+    return angle_a + max_steering_rotation_rate_ * dt;
+  } else if (steer_velocity < -max_steering_rotation_rate_) {
+    double msg_time = cmd->header.stamp.sec + cmd->header.stamp.nanosec * 1e-9;
+    double dt = msg_time - time_a;
+    return angle_a - max_steering_rotation_rate_ * dt;
+  } else {
+    return cmd->actuation.steer_cmd;
+  }
 }
 
 #include <rclcpp_components/register_node_macro.hpp>
