@@ -64,6 +64,8 @@ private:
   std::list<SteeringReport> steering_list_;
 
   double clip_steering(const ActuationCommandStamped::ConstSharedPtr cmd);
+  double steering_angle_delay_;
+  double accleration_delay_;
 };
 
 #endif // AUTOWARE_EXTERNAL_CMD_CONVERTER__NODE_HPP_
