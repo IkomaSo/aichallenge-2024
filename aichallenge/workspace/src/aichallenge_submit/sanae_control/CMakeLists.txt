@@ -12,6 +12,8 @@ ament_auto_find_build_dependencies()
 ament_auto_add_executable(simple_pd_controller
   src/simple_pd_controller.cpp
 )
-
+ament_auto_add_executable(sliding_mode_controller
+  src/sliding_mode_controller.cpp
+)
 
 ament_auto_package()
