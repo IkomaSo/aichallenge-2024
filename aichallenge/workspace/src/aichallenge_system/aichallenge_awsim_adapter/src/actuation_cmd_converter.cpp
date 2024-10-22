@@ -13,11 +13,16 @@
 // limitations under the License.
 
 #include "actuation_cmd_converter.hpp"
+#include <iostream>
+#include <queue>
+#include <utility>
 
 ActuationCmdConverter::ActuationCmdConverter(const rclcpp::NodeOptions & node_options)
 : Node("actuation_cmd_converter", node_options),
   max_steering_rotation_rate_(declare_parameter<float>("max_steering_rotation_rate", 0.35)),
-  moving_average_window_size_(declare_parameter<int>("moving_average_window_size", 3))
+  moving_average_window_size_(declare_parameter<int>("moving_average_window_size", 3)),
+  steering_angle_delay_(declare_parameter<float>("steering_angle_delay", 0.065)),
+  accleration_delay_(declare_parameter<float>("accleration_delay", 0.1))
 {
   using std::placeholders::_1;
 
@@ -59,6 +64,8 @@ void ActuationCmdConverter::on_velocity_report(const VelocityReport::ConstShared
   velocity_report_ = msg;
 }
 
+
+
 void ActuationCmdConverter::on_steering_report(const SteeringReport::ConstSharedPtr msg)
 {
   steering_list_.push_back(*msg);
@@ -67,6 +74,8 @@ void ActuationCmdConverter::on_steering_report(const SteeringReport::ConstShared
   }
 }
 
+std::list<ActuationCommandStamped> past_output_steering_angle_;
+std::queue<std::pair<float, float>> past_output_acceleration;
 void ActuationCmdConverter::on_actuation_cmd(const ActuationCommandStamped::ConstSharedPtr msg)
 {
   // Wait for input data
@@ -82,10 +91,21 @@ void ActuationCmdConverter::on_actuation_cmd(const ActuationCommandStamped::Cons
   AckermannControlCommand output;
   output.stamp = msg->header.stamp;
   output.lateral.steering_tire_angle = static_cast<float>(msg->actuation.steer_cmd);
-  output.lateral.steering_tire_angle = static_cast<float>(clip_steering(msg));
+  // output.lateral.steering_tire_angle = static_cast<float>(clip_steering(msg));
   output.lateral.steering_tire_rotation_rate = nan;
   output.longitudinal.speed = nan;
   output.longitudinal.acceleration = static_cast<float>(acceleration);
+  past_output_steering_angle_.push_back(*msg);
+  past_output_acceleration.push(std::make_pair(rclcpp::Time(output.stamp).seconds(), output.longitudinal.acceleration));
+  if(rclcpp::Time(output.stamp).seconds() - rclcpp::Time(past_output_steering_angle_.begin()->header.stamp).seconds() >= steering_angle_delay_){
+    past_output_steering_angle_.begin()->header.stamp = output.stamp;
+    output.lateral.steering_tire_angle = static_cast<float>(clip_steering(std::make_shared<const ActuationCommandStamped>(past_output_steering_angle_.front())));
+    past_output_steering_angle_.pop_front();
+  } 
+  if(rclcpp::Time(output.stamp).seconds() - past_output_acceleration.front().first >= accleration_delay_){
+    output.longitudinal.acceleration = past_output_acceleration.front().second;
+    past_output_acceleration.pop();
+  }
   pub_ackermann_->publish(output);
 }
 
