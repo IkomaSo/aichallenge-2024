@@ -2,7 +2,7 @@ import numpy as np
 import xml.etree.ElementTree as ET
 import os
 import matplotlib.pyplot as plt
-from scipy import interpolate
+from scipy.interpolate import make_interp_spline
 from sklearn.neighbors import NearestNeighbors 
 
 class CenterLineMap:
@@ -12,22 +12,22 @@ class CenterLineMap:
     self.load_map(lanelet2_path)
     self.resolution = resolution
     
-    self.eq_cl_x, self.eq_cl_y = self.equidistant_interpolation(
+    self.eq_cl_x, self.eq_cl_y, _, _ = self.equidistant_interpolation(
       [x for x, y in self.lanelet_centerlines], 
       [y for x, y in self.lanelet_centerlines], 
       resolution)
     
-    self.eq_lb_x, self.eq_lb_y = self.equidistant_interpolation(
+    self.eq_lb_x, self.eq_lb_y, _, _ = self.equidistant_interpolation(
       [x for x, y in self.lanelet_left_boundaries],
       [y for x, y in self.lanelet_left_boundaries],
       500)
     
-    self.eq_rb_x, self.eq_rb_y = self.equidistant_interpolation(
+    self.eq_rb_x, self.eq_rb_y, _, _ = self.equidistant_interpolation(
       [x for x, y in self.lanelet_right_boundaries],
       [y for x, y in self.lanelet_right_boundaries],
       500)
     
-    self.eq_cl_x_fine, self.eq_cl_y_fine = self.equidistant_interpolation(
+    self.eq_cl_x_fine, self.eq_cl_y_fine, _, _ = self.equidistant_interpolation(
       [x for x, y in self.lanelet_centerlines],
       [y for x, y in self.lanelet_centerlines],
       500)
@@ -98,9 +98,8 @@ class CenterLineMap:
             
   def equidistant_interpolation(self, x, y, resolution):
     t = np.linspace(0, 1., len(x))
-    method = 'quadratic'
-    interp_x = interpolate.interp1d(t, x, kind=method)
-    interp_y = interpolate.interp1d(t, y, kind=method)
+    interp_x = make_interp_spline(t, x, k=5, bc_type='periodic')
+    interp_y = make_interp_spline(t, y, k=5, bc_type='periodic')
     # 細かい分割を考える
     s_fine = np.linspace(0, 1, resolution * 100)
     x_fine = interp_x(s_fine)
@@ -119,7 +118,7 @@ class CenterLineMap:
         t_idx += 1
     x_eq = interp_x(t_eq)
     y_eq = interp_y(t_eq)
-    return x_eq, y_eq
+    return x_eq, y_eq, interp_x, interp_y
   
   def get_heading_vector(self, idx):
     fine_idx = len(self.eq_cl_x_fine) * idx // len(self.eq_cl_x)

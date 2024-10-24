@@ -311,10 +311,10 @@ class TrajectoryOptimizer(Node):
       normal_vec = self.center_line_map.get_normal_vector(idx)
       traf_x.append(self.center_line_map.eq_cl_x[idx] + normal_vec[0] * self.deviations[idx])
       traf_y.append(self.center_line_map.eq_cl_y[idx] + normal_vec[1] * self.deviations[idx])
-    hires_x, hires_y = self.center_line_map.equidistant_interpolation(traf_x, traf_y, self.traj_points)
+    hires_x, hires_y, spl_x, spl_y = self.center_line_map.equidistant_interpolation(traf_x, traf_y, self.traj_points)
     pit_idx = self.get_nearest_idx(hires_x, hires_y, PIT_X, PIT_Y)
     current_idx_fine = self.get_nearest_idx(hires_x, hires_y, self.odom.pose.pose.position.x, self.odom.pose.pose.position.y)
-    for i in range(self.traj_points * 7 // 8):
+    for i in range(self.traj_points):
       traj_point = TrajectoryPoint()
       idx = i
       prev_idx = (idx - 1 + self.traj_points) % self.traj_points
@@ -338,7 +338,9 @@ class TrajectoryOptimizer(Node):
       #   vel = max(dist * 30.0 / 3.6 * 4.0, 5.0 / 3.6)
       #   if vel < traj_point.longitudinal_velocity_mps:
       #     traj_point.longitudinal_velocity_mps = vel
-      curvature = np.cross(prev_heading_vec, heading_vec) / np.linalg.norm(p_n - p_p)
+      # curvature = np.cross(prev_heading_vec, heading_vec) / np.linalg.norm(p_n - p_p)
+      t = i / self.traj_points
+      curvature = (spl_x(t, nu=1) * spl_y(t, nu=2) - spl_x(t, nu=2) * spl_y(t, nu=1)) / (spl_x(t, nu=1)**2 + spl_y(t, nu=1)**2)**1.5
       traj_point.front_wheel_angle_rad = np.arctan(self.wheel_base * curvature)
       traj.points.append(traj_point)
       if self.pitstop and idx == pit_idx:
