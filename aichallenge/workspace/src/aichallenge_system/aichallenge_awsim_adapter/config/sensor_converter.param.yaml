@@ -9,8 +9,8 @@
 
     imu_acc_mean: 0.0
     imu_acc_stddev: 0.001
-    imu_ang_mean: 0.0
-    imu_ang_stddev: 0.0025
+    imu_ang_mean: -0.0015 ## change. prev value: 0.0
+    imu_ang_stddev: 0.0020 ## change. prev value: 0.0025
     imu_ori_mean: 0.0
     imu_ori_stddev: 0.001
 
