@@ -266,10 +266,10 @@
   <node pkg="sanae_control" exec="pid_controller" name="pid_controller" output="screen">
     <param name="use_external_target_vel" value="false"/>
     <param name="external_target_vel" value="50.0"/>
-    <param name="steering_angle_proportional_gain" value="0.0"/>
-    <param name="steering_angle_integral_gain" value="0.0"/> 
-    <param name="yaw_rate_fb_lat_gain" value="1.3"/> 
-    <param name="yaw_rate_fb_yaw_gain" value="8"/> 
+    <param name="steering_angle_proportional_gain" value="0.1"/>
+    <param name="steering_angle_integral_gain" value="0.001"/> 
+    <param name="yaw_rate_fb_lat_gain" value="0.1"/> 
+    <param name="yaw_rate_fb_yaw_gain" value="3.0"/> 
     <param name="lookahead_gain" value="0.185"/>
     <param name="lookahead_min_distance" value="0."/>
     <param name="speed_proportional_gain" value="1.0"/>
