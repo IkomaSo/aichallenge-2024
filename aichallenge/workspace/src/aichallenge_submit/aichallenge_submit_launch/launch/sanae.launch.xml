@@ -225,7 +225,7 @@
     </group>
   </group>
 
-  <node pkg="sanae_control" exec="sliding_mode_controller" name="sliding_mode_controller" output="screen">
+  <!-- <node pkg="sanae_control" exec="sliding_mode_controller" name="sliding_mode_controller" output="screen">
     <param name="wheel_base" value="1.27"/>
     <param name="use_external_target_vel" value="false"/>
     <param name="external_target_vel" value="50.0"/>
@@ -242,7 +242,7 @@
     <remap from="input/trigger" to="/control/command/trigger"/>
     <remap from="output/control_cmd" to="/control/command/control_cmd"/>
     <remap from="output/debug_marker" to="/control/pure_pursuit/debug_marker"/>
-  </node>
+  </node> -->
 
   <!-- <node pkg="sanae_control" exec="simple_pd_controller" name="simple_pd_controller" output="screen">
     <param name="use_external_target_vel" value="false"/>
@@ -262,6 +262,29 @@
     <remap from="output/control_cmd" to="/control/command/control_cmd"/>
     <remap from="output/debug_marker" to="/control/pure_pursuit/debug_marker"/>
   </node> -->
+
+  <node pkg="sanae_control" exec="pid_controller" name="pid_controller" output="screen">
+    <param name="use_external_target_vel" value="false"/>
+    <param name="external_target_vel" value="50.0"/>
+    <param name="steering_angle_proportional_gain" value="0.0"/>
+    <param name="steering_angle_integral_gain" value="0.0"/> 
+    <param name="yaw_rate_fb_lat_gain" value="1.3"/> 
+    <param name="yaw_rate_fb_yaw_gain" value="8"/> 
+    <param name="lookahead_gain" value="0.185"/>
+    <param name="lookahead_min_distance" value="0."/>
+    <param name="speed_proportional_gain" value="1.0"/>
+    <param name="stop_position_threshold" value="13.0"/>
+    <param name="stop_omega" value="5.0"/>
+
+    <remap from="input/kinematics" to="/localization/kinematic_state"/>
+    <remap from="input/velocity" to="/vehicle/status/velocity_status"/>
+    <remap from="input/trajectory" to="/planning/scenario_planning/trajectory"/>
+    <remap from="input/trigger" to="/control/command/trigger"/>
+    <remap from="output/control_cmd" to="/control/command/control_cmd"/>
+    <remap from="output/debug_marker" to="/control/pure_pursuit/debug_marker"/>
+  </node>
+
+
 
   <!-- Map -->
   <group>

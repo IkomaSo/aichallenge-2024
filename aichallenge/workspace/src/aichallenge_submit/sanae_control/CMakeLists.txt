@@ -15,5 +15,8 @@ ament_auto_add_executable(simple_pd_controller
 ament_auto_add_executable(sliding_mode_controller
   src/sliding_mode_controller.cpp
 )
+ament_auto_add_executable(pid_controller
+  src/pid_controller.cpp
+)
 
 ament_auto_package()
