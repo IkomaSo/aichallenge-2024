@@ -121,14 +121,11 @@ double ActuationCmdConverter::get_acceleration(const ActuationCommandStamped & c
   return ref_acceleration;
 }
 
-double ActuationCmdConverter::clip_steering(ActuationCommandStamped::SharedPtr cmd)
+double ActuationCmdConverter::clip_steering(const ActuationCommandStamped::ConstSharedPtr cmd)
 {
   if (steering_list_.size() <= static_cast<size_t>(moving_average_window_size_)) {
     return 0.0;
   }
-
-  double max_steering_angle = 0.5589;
-  cmd->actuation.steer_cmd = std::max(-max_steering_angle, std::min(max_steering_angle, cmd->actuation.steer_cmd));
 
   double angle_a = 0.0;
   double time_a  = 0.0;
@@ -146,16 +143,25 @@ double ActuationCmdConverter::clip_steering(ActuationCommandStamped::SharedPtr c
   double cmd_time = cmd->header.stamp.sec + cmd->header.stamp.nanosec * 1e-9;
   double steer_velocity = (cmd->actuation.steer_cmd - angle_a) / (cmd_time - time_a);
 
+  double ret = 0.0;
+
   if (steer_velocity > max_steering_rotation_rate_) {
     double msg_time = cmd->header.stamp.sec + cmd->header.stamp.nanosec * 1e-9;
     double dt = msg_time - time_a;
-    return angle_a + max_steering_rotation_rate_ * dt;
+    ret = angle_a + max_steering_rotation_rate_ * dt;
   } else if (steer_velocity < -max_steering_rotation_rate_) {
     double msg_time = cmd->header.stamp.sec + cmd->header.stamp.nanosec * 1e-9;
     double dt = msg_time - time_a;
-    return angle_a - max_steering_rotation_rate_ * dt;
+    ret = angle_a - max_steering_rotation_rate_ * dt;
   } else {
-    return cmd->actuation.steer_cmd;
+    ret = cmd->actuation.steer_cmd;
+  }
+
+  const double max_steering_angle = 32.0 / 180.0 * 3.14159265359;
+  if (ret > max_steering_angle) {
+    ret = max_steering_angle;
+  } else if (ret < -max_steering_angle) {
+    ret = -max_steering_angle;
   }
 }
 
