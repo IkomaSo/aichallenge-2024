@@ -127,6 +127,9 @@ double ActuationCmdConverter::clip_steering(const ActuationCommandStamped::Const
     return 0.0;
   }
 
+  double max_steering_angle = 0.5589;
+  cmd->actuation.steer_cmd = std::max(-max_steering_angle, std::min(max_steering_angle, cmd->actuation.steer_cmd));
+
   double angle_a = 0.0;
   double time_a  = 0.0;
   auto steer_itr = steering_list_.begin();
