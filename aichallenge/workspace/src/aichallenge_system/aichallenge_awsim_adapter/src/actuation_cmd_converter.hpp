@@ -63,7 +63,7 @@ private:
 
   std::list<SteeringReport> steering_list_;
 
-  double clip_steering(const ActuationCommandStamped::ConstSharedPtr cmd);
+  double clip_steering(const ActuationCommandStamped::SharedPtr cmd);
   double steering_angle_delay_;
   double accleration_delay_;
 };
