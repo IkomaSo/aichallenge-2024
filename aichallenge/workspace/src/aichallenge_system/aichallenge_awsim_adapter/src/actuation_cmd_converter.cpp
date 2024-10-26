@@ -121,7 +121,7 @@ double ActuationCmdConverter::get_acceleration(const ActuationCommandStamped & c
   return ref_acceleration;
 }
 
-double ActuationCmdConverter::clip_steering(ActuationCommandStamped::ConstSharedPtr cmd)
+double ActuationCmdConverter::clip_steering(ActuationCommandStamped::SharedPtr cmd)
 {
   if (steering_list_.size() <= static_cast<size_t>(moving_average_window_size_)) {
     return 0.0;
