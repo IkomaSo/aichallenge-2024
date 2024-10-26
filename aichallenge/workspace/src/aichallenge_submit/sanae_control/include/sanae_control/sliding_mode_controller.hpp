@@ -36,6 +36,9 @@ class SlidingModeController : public rclcpp::Node {
   std::shared_ptr<rclcpp::ParameterEventHandler> sub_param_;
   std::shared_ptr<rclcpp::ParameterCallbackHandle> lookahead_gain_cb_handle_;
   std::shared_ptr<rclcpp::ParameterCallbackHandle> lookahead_min_cb_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> theta_weight_cb_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> reaching_gain_cb_handle_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> saturation_sharpness_cb_handle_;
   
   // publishers
   rclcpp::Publisher<AckermannControlCommand>::SharedPtr pub_cmd_;
@@ -59,9 +62,9 @@ class SlidingModeController : public rclcpp::Node {
   double speed_proportional_gain_;
   const bool use_external_target_vel_;
   const double external_target_vel_;
-  const double theta_weight_;
-  const double reaching_gain_;
-  const double saturation_sharpness_;
+  double theta_weight_;
+  double reaching_gain_;
+  double saturation_sharpness_;
 
  private:
   void onTimer();

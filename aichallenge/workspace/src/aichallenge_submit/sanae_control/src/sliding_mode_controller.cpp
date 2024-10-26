@@ -63,6 +63,31 @@ SlidingModeController::SlidingModeController()
   lookahead_gain_cb_handle_ =
       sub_param_->add_parameter_callback("lookahead_gain", lookahead_gain_cb);
 
+  auto theta_weight_cb = [this](const rclcpp::Parameter &p) {
+    RCLCPP_INFO(this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
+                p.get_name().c_str(), theta_weight_, p.as_double());
+    theta_weight_ = p.as_double();
+  };
+  theta_weight_cb_handle_ =
+      sub_param_->add_parameter_callback("theta_weight", theta_weight_cb);
+
+  auto reaching_gain_cb = [this](const rclcpp::Parameter &p) {
+    RCLCPP_INFO(this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
+                p.get_name().c_str(), reaching_gain_, p.as_double());
+    reaching_gain_ = p.as_double();
+  };
+  reaching_gain_cb_handle_ =
+      sub_param_->add_parameter_callback("reaching_gain", reaching_gain_cb);
+
+  auto saturation_sharpness_cb = [this](const rclcpp::Parameter &p) {
+    RCLCPP_INFO(this->get_logger(), "\"%s\" changed from \"%lf\" to \"%f\"",
+                p.get_name().c_str(), saturation_sharpness_, p.as_double());
+    saturation_sharpness_ = p.as_double();
+  };
+  saturation_sharpness_cb_handle_ =
+      sub_param_->add_parameter_callback("saturation_sharpness",
+                                         saturation_sharpness_cb);
+
   using namespace std::literals::chrono_literals;
   timer_ = rclcpp::create_timer(
       this, get_clock(), 8ms, std::bind(&SlidingModeController::onTimer, this));
@@ -146,7 +171,7 @@ void SlidingModeController::onTimer() {
   double SxB_inv =
       1.0 / (current_longitudinal_vel * std::cos(yaw_err) + theta_weight_);
   double curvature =
-      std::tan(lookahead_point_itr->front_wheel_angle_rad) / wheel_base_;
+      std::tan(lookahead_point_itr->front_wheel_angle_rad) / wheel_base_ ;
   double omega_ref =
       (curvature * current_longitudinal_vel * std::cos(yaw_err)) /
       (1.0 - curvature * lat_err);
