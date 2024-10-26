@@ -163,6 +163,8 @@ double ActuationCmdConverter::clip_steering(const ActuationCommandStamped::Const
   } else if (ret < -max_steering_angle) {
     ret = -max_steering_angle;
   }
+
+  return ret;
 }
 
 #include <rclcpp_components/register_node_macro.hpp>
