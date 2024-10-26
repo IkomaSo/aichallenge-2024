@@ -120,7 +120,7 @@ void SlidingModeController::onTimer() {
     return;
   }
 
-  size_t closet_traj_point_idx =
+  size_t closest_traj_point_idx =
       findNearestIndex(trajectory_->points, odometry_->pose.pose.position);
 
   double lookahead_distance =
@@ -135,7 +135,7 @@ void SlidingModeController::onTimer() {
       wheel_base_ / 2.0 * std::sin(odometry_->pose.pose.orientation.z);
 
   auto lookahead_point_itr = std::find_if(
-      trajectory_->points.begin() + closet_traj_point_idx,
+      trajectory_->points.begin() + closest_traj_point_idx,
       trajectory_->points.end(), [&](const TrajectoryPoint &point) {
         return std::hypot(point.pose.position.x - rear_x,
                           point.pose.position.y - rear_y) >= lookahead_distance;
