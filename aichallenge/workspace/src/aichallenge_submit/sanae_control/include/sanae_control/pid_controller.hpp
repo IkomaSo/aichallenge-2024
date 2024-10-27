@@ -67,8 +67,6 @@ class PIDController : public rclcpp::Node {
   const bool use_external_target_vel_;
   const double external_target_vel_;
   const double stop_omega_;
-  const double stop_position_threshold_;
-
 
  private:
   void onTimer();

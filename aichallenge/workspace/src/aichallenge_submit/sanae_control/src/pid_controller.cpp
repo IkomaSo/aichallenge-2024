@@ -38,9 +38,7 @@ PIDController::PIDController()
           declare_parameter<bool>("use_external_target_vel", false)),
       external_target_vel_(
           declare_parameter<float>("external_target_vel", 0.0)),
-      stop_omega_(declare_parameter<float>("stop_omega", 1.0)),
-      stop_position_threshold_(
-          declare_parameter<float>("stop_position_threshold", 1.0)) {
+      stop_omega_(declare_parameter<float>("stop_omega", 5.0)) {
   pub_cmd_ = create_publisher<AckermannControlCommand>("output/control_cmd", 1);
   pub_debug_marker_ = create_publisher<visualization_msgs::msg::MarkerArray>(
       "output/debug_marker", 1);
@@ -167,10 +165,6 @@ void PIDController::onTimer() {
   // publish zero command
   AckermannControlCommand cmd = zeroAckermannControlCommand(get_clock()->now());
 
-  double length =
-      getTrajectoryLength(trajectory_->points.begin() + closest_traj_point_idx,
-                          trajectory_->points.end());
-
   TrajectoryPoint closest_traj_point =
       trajectory_->points.at(closest_traj_point_idx);
 
@@ -180,15 +174,7 @@ void PIDController::onTimer() {
 
   double current_longitudinal_vel = velocity_->longitudinal_velocity;
 
-  if (length < stop_position_threshold_) {
-    double Kp = -std::pow(stop_omega_, 2);
-    double Kd = -4.0 * stop_omega_;
-    cmd.longitudinal.speed = 0.0;
-    cmd.longitudinal.acceleration =
-        Kp * (-length) + Kd * velocity_->longitudinal_velocity;
-    std::cout << "stop position control: acc = "
-              << cmd.longitudinal.acceleration << std::endl;
-  } else if (is_stop) {
+  if (is_stop) {
     double Kd = -4.0 * stop_omega_;
     cmd.longitudinal.speed = 0.0;
     cmd.longitudinal.acceleration =
