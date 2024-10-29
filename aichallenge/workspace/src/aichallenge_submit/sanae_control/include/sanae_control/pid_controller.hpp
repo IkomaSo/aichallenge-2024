@@ -61,6 +61,7 @@ class PIDController : public rclcpp::Node {
   double steering_angle_integral_gain_;
   double yaw_rate_fb_lat_gain_;
   double yaw_rate_fb_yaw_gain_;
+  const double vel_lookahead_distance_;
   double lookahead_gain_;
   double lookahead_min_distance_;
   double speed_proportional_gain_;

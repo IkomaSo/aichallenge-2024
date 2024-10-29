@@ -29,6 +29,7 @@ PIDController::PIDController()
           declare_parameter<float>("yaw_rate_fb_lat_gain", 1.0)),
       yaw_rate_fb_yaw_gain_(
           declare_parameter<float>("yaw_rate_fb_yaw_gain", 1.0)),
+      vel_lookahead_distance_(declare_parameter<float>("vel_lookahead_distance", 10.0)),
       lookahead_gain_(declare_parameter<float>("lookahead_gain", 1.0)),
       lookahead_min_distance_(
           declare_parameter<float>("lookahead_min_distance", 1.0)),
@@ -165,12 +166,33 @@ void PIDController::onTimer() {
   // publish zero command
   AckermannControlCommand cmd = zeroAckermannControlCommand(get_clock()->now());
 
-  TrajectoryPoint closest_traj_point =
-      trajectory_->points.at(closest_traj_point_idx);
+  //// calc center coordinate of rear wheel
+  double rear_x =
+      odometry_->pose.pose.position.x -
+      wheel_base_ / 2.0 * std::cos(odometry_->pose.pose.orientation.z);
+  double rear_y =
+      odometry_->pose.pose.position.y -
+      wheel_base_ / 2.0 * std::sin(odometry_->pose.pose.orientation.z);
+
+  //// search lookahead point
+  auto get_loockahead_pt = [&](double distance) {
+    auto itr = std::find_if(
+        trajectory_->points.begin() + closest_traj_point_idx,
+        trajectory_->points.end(), [&](const TrajectoryPoint &point) {
+          return std::hypot(point.pose.position.x - rear_x,
+                            point.pose.position.y - rear_y) >= distance;
+        });
+    if (itr == trajectory_->points.end()) {
+      itr = trajectory_->points.end() - 1;
+    }
+    return itr;
+  };
+
+  auto vel_lookahead_point_itr = get_loockahead_pt(vel_lookahead_distance_);
 
   double target_longitudinal_vel =
       use_external_target_vel_ ? external_target_vel_
-                               : closest_traj_point.longitudinal_velocity_mps;
+                               : vel_lookahead_point_itr->longitudinal_velocity_mps;
 
   double current_longitudinal_vel = velocity_->longitudinal_velocity;
 
@@ -192,23 +214,8 @@ void PIDController::onTimer() {
   //// calc lookahead distance
   double lookahead_distance =
       lookahead_gain_ * current_longitudinal_vel + lookahead_min_distance_;
-  //// calc center coordinate of rear wheel
-  double rear_x =
-      odometry_->pose.pose.position.x -
-      wheel_base_ / 2.0 * std::cos(odometry_->pose.pose.orientation.z);
-  double rear_y =
-      odometry_->pose.pose.position.y -
-      wheel_base_ / 2.0 * std::sin(odometry_->pose.pose.orientation.z);
-  //// search lookahead point
-  auto lookahead_point_itr = std::find_if(
-      trajectory_->points.begin() + closest_traj_point_idx,
-      trajectory_->points.end(), [&](const TrajectoryPoint &point) {
-        return std::hypot(point.pose.position.x - rear_x,
-                          point.pose.position.y - rear_y) >= lookahead_distance;
-      });
-  if (lookahead_point_itr == trajectory_->points.end()) {
-    lookahead_point_itr = trajectory_->points.end() - 1;
-  }
+
+  auto lookahead_point_itr = get_loockahead_pt(lookahead_distance);
 
   double lat_err = calcLateralDeviation(
       lookahead_point_itr->pose,
