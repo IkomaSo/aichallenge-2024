@@ -225,7 +225,7 @@
       <node pkg="sanae_planner" exec="clothoid_traj_publisher" name="clothoid_traj_publisher" output="screen">
         <param name="lanelet2_map_file" value="$(find-pkg-share sanae_planner)/trajectory/traj.csv"/>
         <param name="wheel_base" value="1.087"/>
-        <param name="speed_km_h" value="20.0"/>
+        <param name="speed_km_h" value="30.0"/>
         <remap from="input/odom" to="/localization/kinematic_state"/>
         <remap from="output/trajectory" to="/planning/scenario_planning/trajectory"/>
       </node>
@@ -233,15 +233,16 @@
     </group>
   </group>
 
-  <node pkg="sanae_control" exec="sliding_mode_controller" name="sliding_mode_controller" output="screen">
+  <!-- <node pkg="sanae_control" exec="sliding_mode_controller" name="sliding_mode_controller" output="screen">
     <param name="wheel_base" value="1.087"/>
     <param name="use_external_target_vel" value="false"/>
     <param name="external_target_vel" value="50.0"/>
+    <param name="vel_lookahead_distance" value="10.0"/>
     <param name="lookahead_gain" value="0.0"/>
     <param name="lookahead_min_distance" value="0.0"/>
     <param name="speed_proportional_gain" value="2.0"/>
-    <param name="theta_weight" value=".01"/>
-    <param name="reaching_gain" value="0.5"/>
+    <param name="theta_weight" value="9.0"/>
+    <param name="reaching_gain" value="4.0"/>
     <param name="saturation_sharpness" value="1.0"/>
 
     <remap from="input/kinematics" to="/localization/kinematic_state"/>
@@ -250,7 +251,7 @@
     <remap from="input/trigger" to="/control/command/trigger"/>
     <remap from="output/control_cmd" to="/control/command/control_cmd"/>
     <remap from="output/debug_marker" to="/control/pure_pursuit/debug_marker"/>
-  </node> -->
+  </node>  -->
 
   <!-- <node pkg="sanae_control" exec="simple_pd_controller" name="simple_pd_controller" output="screen">
     <param name="use_external_target_vel" value="false"/>
@@ -278,6 +279,7 @@
     <param name="steering_angle_integral_gain" value="0.001"/> 
     <param name="yaw_rate_fb_lat_gain" value="0.1"/> 
     <param name="yaw_rate_fb_yaw_gain" value="3.0"/> 
+    <param name="vel_lookahead_distance" value="0.0"/>
     <param name="lookahead_gain" value="0.185"/>
     <param name="lookahead_min_distance" value="0."/>
     <param name="speed_proportional_gain" value="1.0"/>
