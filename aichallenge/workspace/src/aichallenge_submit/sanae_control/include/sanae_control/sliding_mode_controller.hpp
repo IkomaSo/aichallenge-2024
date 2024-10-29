@@ -57,6 +57,7 @@ class SlidingModeController : public rclcpp::Node {
 
   // pd controller parameters
   const double wheel_base_;
+  const double vel_lookahead_distance_;
   double lookahead_gain_;
   double lookahead_min_distance_;
   double speed_proportional_gain_;

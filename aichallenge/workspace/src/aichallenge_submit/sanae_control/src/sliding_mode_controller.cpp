@@ -17,6 +17,7 @@ SlidingModeController::SlidingModeController()
     : Node("sliding_mode_controller"),
       // initialize parameters
       wheel_base_(declare_parameter<float>("wheel_base", 1.087)),
+      vel_lookahead_distance_(declare_parameter<float>("vel_lookahead_distance", 15.0)),
       lookahead_gain_(declare_parameter<float>("lookahead_gain", 1.0)),
       lookahead_min_distance_(
           declare_parameter<float>("lookahead_min_distance", 1.0)),
@@ -134,16 +135,20 @@ void SlidingModeController::onTimer() {
       odometry_->pose.pose.position.y -
       wheel_base_ / 2.0 * std::sin(odometry_->pose.pose.orientation.z);
 
-  auto lookahead_point_itr = std::find_if(
-      trajectory_->points.begin() + closest_traj_point_idx,
-      trajectory_->points.end(), [&](const TrajectoryPoint &point) {
-        return std::hypot(point.pose.position.x - rear_x,
-                          point.pose.position.y - rear_y) >= lookahead_distance;
-      });
+  auto get_loockahead_pt = [&](double distance) {
+    auto itr = std::find_if(
+        trajectory_->points.begin() + closest_traj_point_idx,
+        trajectory_->points.end(), [&](const TrajectoryPoint &point) {
+          return std::hypot(point.pose.position.x - rear_x,
+                            point.pose.position.y - rear_y) >= distance;
+        });
+    if (itr == trajectory_->points.end()) {
+      itr = trajectory_->points.end() - 1;
+    }
+    return itr;
+  };
 
-  if (lookahead_point_itr == trajectory_->points.end()) {
-    lookahead_point_itr = trajectory_->points.end() - 1;
-  }
+  auto lookahead_point_itr = get_loockahead_pt(lookahead_distance);
 
   pubMarker(lookahead_point_itr);
 
@@ -154,10 +159,11 @@ void SlidingModeController::onTimer() {
       calcYawDeviation(lookahead_point_itr->pose, odometry_->pose.pose);
 
   // longitudinal control by P controller
+  auto vel_lookahead_point_itr = get_loockahead_pt(vel_lookahead_distance_);
   AckermannControlCommand cmd = zeroAckermannControlCommand(get_clock()->now());
   double target_longitudinal_vel =
       use_external_target_vel_ ? external_target_vel_
-                               : lookahead_point_itr->longitudinal_velocity_mps;
+                               : vel_lookahead_point_itr->longitudinal_velocity_mps;
   double current_longitudinal_vel = velocity_->longitudinal_velocity;
 
   cmd.longitudinal.speed = target_longitudinal_vel;
