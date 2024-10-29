@@ -15,7 +15,8 @@ class ClothoidTrajPublisher(Node):
     super().__init__('clothoid_traj_publisher')
     self.declare_parameter('traj_file', '/aichallenge/workspace/src/aichallenge_submit/sanae_planner/trajectory/traj.csv')
     self.declare_parameter('wheel_base', 1.087)
-    self.declare_parameter('speed_km_h', 10.0)
+    self.declare_parameter('speed_km_h', 20.0)
+    self.declare_parameter('max_centripetal_acc', 4.0)
         
     self.traj_pub = self.create_publisher(Trajectory, '/planning/scenario_planning/trajectory', 10)
     self.odom_sub = self.create_subscription(Odometry, 'input/odom', self.odom_callback, 10)
@@ -64,6 +65,9 @@ class ClothoidTrajPublisher(Node):
       traj_point.pose.orientation.z = q[2]
       traj_point.pose.orientation.w = q[3]
       traj_point.longitudinal_velocity_mps = self.speed_mps
+      max_speed = np.sqrt(self.get_parameter('max_centripetal_acc').value / (np.abs(self.curvature[i])+1e-6))
+      if self.speed_mps > max_speed:
+        traj_point.longitudinal_velocity_mps = max_speed
       traj_point.front_wheel_angle_rad = np.arctan(self.curvature[i] * self.wheel_base)
       traj_msg.points.append(traj_point)
       
