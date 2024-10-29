@@ -4,6 +4,10 @@ project(aichallenge_awsim_adapter)
 find_package(autoware_cmake REQUIRED)
 autoware_package()
 
+ament_auto_add_executable(make_disturbance
+  src/disturbance.cpp
+)
+
 ament_auto_add_library(${PROJECT_NAME} SHARED
   src/actuation_cmd_converter.cpp
   src/sensor_converter.cpp

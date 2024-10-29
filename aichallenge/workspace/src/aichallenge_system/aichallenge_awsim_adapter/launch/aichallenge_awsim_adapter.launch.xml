@@ -11,4 +11,8 @@
   <node pkg="aichallenge_awsim_adapter" exec="sensor_converter">
     <param from="$(find-pkg-share aichallenge_awsim_adapter)/config/sensor_converter.param.yaml" />
   </node>
+  <!-- <node pkg="aichallenge_awsim_adapter" exec="make_disturbance">
+    <param name="steering_disturbance" value="0.1"/>
+    <param name="accleration_disturbance" value="0.1"/>
+  </node> -->
 </launch>
