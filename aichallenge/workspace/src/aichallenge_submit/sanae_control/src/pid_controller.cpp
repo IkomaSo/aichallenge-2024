@@ -247,23 +247,23 @@ void PIDController::onTimer() {
   pub_cmd_->publish(cmd);
 
   // tire warm mode adeed by junoda
-  if (warm_up_mode_ && steering_tire_angle < /*上限*/ && steering_tire_angle > /*下限*/ ) { // warm_up_mode_がtrueで、ステア角が範囲内のとき
+  if (warm_up_mode_ && steering_tire_angle < 0.17 && steering_tire_angle > 0.17 ) { // warm_up_mode_がtrueで、ステア角が範囲内のとき
     static bool break_mode = false;
-    if (current_longitudinal_vel > /*速度*/) {
+    double max_vel = 2.8;
+    double min_vel = 0.6;
+    if (current_longitudinal_vel > max_vel) {
       // RCLCPP_INFO(get_logger(), "Tire warm up mode is enabled");
-      /* 指令速度をマイナスにする*/
-      cmd.longitudinal.speed = /*マイナス一定値*/; // TODO
+      cmd.longitudinal.acceleration = -5.0; // 指令加速度をマイナスにする
+      cmd.longitudinal.speed = 0.0; // debug用
       break_mode = true;
-    } else if (break_mode && current_longitudinal_vel < /*速度*/ && current_longitudinal_vel > /*速度*/) {
-      /* 指令速度をマイナスにする*/
-      cmd.longitudinal.speed = /*マイナス一定値*/; // TODO
-    } else if (!break_mode && current_longitudinal_vel < /*速度*/ && current_longitudinal_vel > /*速度*/) {
-      /* いつもの指令速度にする*/
-      cmd.longitudinal.speed = target_longitudinal_vel; // TODO
+    } else if (break_mode && current_longitudinal_vel < max_vel && current_longitudinal_vel > min_vel) {
+      cmd.longitudinal.acceleration = -5.0; // 指令加速度を0にする
+      cmd.longitudinal.speed = 0.0; // debug用
+    } else if (!break_mode && current_longitudinal_vel < max_vel && current_longitudinal_vel > min_vel) {
+      cmd.longitudinal.speed = target_longitudinal_vel; // いつもの指令速度にする, 加速度は変更なし
     } else { // 十分減速仕切ったときにいつもの指令速度にする処理
       // RCLCPP_INFO(get_logger(), "Tire warm up mode is disabled");
-      /* いつもの指令速度にする*/
-      cmd.longitudinal.speed = target_longitudinal_vel; // TODO
+      cmd.longitudinal.speed = target_longitudinal_vel; // いつもの指令速度にする, 加速度は変更なし
       break_mode = false;
     }
   }
