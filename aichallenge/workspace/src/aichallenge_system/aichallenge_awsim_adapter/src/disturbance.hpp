@@ -12,6 +12,7 @@
 #include <sys/select.h>
 #include <thread>
 #include <atomic>
+#include <chrono>
 
 #include <autoware_auto_control_msgs/msg/ackermann_control_command.hpp>
 
@@ -21,15 +22,16 @@ using autoware_auto_control_msgs::msg::AckermannControlCommand;
 class MakeDisturbance : public rclcpp::Node {
     public:
         explicit MakeDisturbance();
-        ~MakeDisturbance();
 
     private:
+        rclcpp::CallbackGroup::SharedPtr subscriber_cb_group_;
+        rclcpp::CallbackGroup::SharedPtr timer_cb_group_;
         rclcpp::Subscription<AckermannControlCommand>::SharedPtr sub_converted_cmd_;
         rclcpp::Publisher<AckermannControlCommand>::SharedPtr pub_cmd_to_sim_;
+        rclcpp::TimerBase::SharedPtr keyboard_timer_;
 
         void on_converted_cmd(const AckermannControlCommand::ConstSharedPtr msg);
         void check_keyboard_input();
-        void keyboard_thread();
 
         //Parameters
         double steering_disturbance_;

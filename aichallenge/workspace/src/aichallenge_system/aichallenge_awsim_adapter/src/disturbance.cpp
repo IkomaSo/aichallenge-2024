@@ -13,20 +13,18 @@ MakeDisturbance::MakeDisturbance()
 {
     using std::placeholders::_1;
 
+    //set call_back group
+    subscriber_cb_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    timer_cb_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+
+    rclcpp::SubscriptionOptions options;
+    options.callback_group = subscriber_cb_group_;
     //Subscriptions
-    sub_converted_cmd_ = create_subscription<AckermannControlCommand>("converted_control_cmd", 1, std::bind(&MakeDisturbance::on_converted_cmd, this, _1));
-    
+    sub_converted_cmd_ = create_subscription<AckermannControlCommand>("converted_control_cmd", 1, std::bind(&MakeDisturbance::on_converted_cmd, this, _1), options);
     //Publishers
     pub_cmd_to_sim_ = create_publisher<AckermannControlCommand>("/awsim/control_cmd", 1);
 
-    keyboard_thread_ = std::thread(&MakeDisturbance::keyboard_thread, this);
-}
-
-MakeDisturbance::~MakeDisturbance() {
-    running_ = false; // スレッドを停止するためのフラグを設定
-    if (keyboard_thread_.joinable()) {
-        keyboard_thread_.join(); // スレッドの終了を待つ
-    }
+    keyboard_timer_ = create_wall_timer(std::chrono::seconds(1), std::bind(&MakeDisturbance::check_keyboard_input, this), timer_cb_group_);
 }
 
 void MakeDisturbance::on_converted_cmd(const AckermannControlCommand::ConstSharedPtr msg)
@@ -104,16 +102,13 @@ void MakeDisturbance::check_keyboard_input(){
     tcsetattr(kfd, TCSANOW, &oldt);
 }
 
-void MakeDisturbance::keyboard_thread() {
-    while (running_) {
-        check_keyboard_input(); // キーボード入力をチェック
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 適切な間隔で待機
-    }
-}
 
 int main(int argc, char const *argv[]) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<MakeDisturbance>());
+  auto subscriber_node = std::make_shared<MakeDisturbance>();
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(subscriber_node);
+  executor.spin();
   rclcpp::shutdown();
   return 0;
 }
