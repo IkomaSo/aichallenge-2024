@@ -54,7 +54,6 @@ class PIDController : public rclcpp::Node {
   Trajectory::SharedPtr trajectory_;
   VelocityReport::SharedPtr velocity_;
   Odometry::SharedPtr odometry_;
-  bool warm_up_mode_; // warm up tire flag add by junoda, msg型である必要がないためただのbool型に変更
 
 
 
@@ -72,6 +71,7 @@ class PIDController : public rclcpp::Node {
   const double external_target_vel_;
   const double stop_omega_;
 
+  bool warm_up_mode_; // warm up tire flag add by junoda, msg型である必要がないためただのbool型に変更
  private:
   void onTimer();
   bool subscribeMessageAvailable();

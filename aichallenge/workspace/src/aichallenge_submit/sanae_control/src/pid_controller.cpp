@@ -39,11 +39,12 @@ PIDController::PIDController() // constructor
           declare_parameter<bool>("use_external_target_vel", false)),
       external_target_vel_(
           declare_parameter<float>("external_target_vel", 0.0)),
-      warm_up_mode_(false), // warm up tire flag add by junoda, topicの初期化
-      stop_omega_(declare_parameter<float>("stop_omega", 5.0)) {
+      stop_omega_(declare_parameter<float>("stop_omega", 5.0)),
+          warm_up_mode_(false) { // warm up tire flag add by junoda, topicの初期化
   pub_cmd_ = create_publisher<AckermannControlCommand>("output/control_cmd", 1);
   pub_debug_marker_ = create_publisher<visualization_msgs::msg::MarkerArray>(
       "output/debug_marker", 1);
+
 
   sub_kinematics_ = create_subscription<Odometry>(
       "input/kinematics", 1,
@@ -54,13 +55,14 @@ PIDController::PIDController() // constructor
   sub_trajectory_ = create_subscription<Trajectory>(
       "input/trajectory", 1,
       [this](const Trajectory::SharedPtr msg) { trajectory_ = msg; });
-  sub_warm_up_mode_ = create_subscription<std_msgs::msg::Bool>(
-      "input/warm_up_mode", 1,
-      [this](const std_msgs::msg::Bool::SharedPtr msg) { warm_up_mode_ = msg->data; }); // warm up tire flag add by junoda, ここでwarm_up_mode_を更新
   sub_trigger_ = create_subscription<std_msgs::msg::Empty>(
       "input/trigger", 1, [this](const std_msgs::msg::Empty::SharedPtr) {
-        is_stop = !is_stop;
-      });
+        is_stop = !is_stop; });
+  sub_warm_up_mode_ = create_subscription<std_msgs::msg::Bool>(
+      "input/warm_up_mode", 1,
+      [this](const std_msgs::msg::Bool::SharedPtr msg) { warm_up_mode_ = msg->data;
+      }); // warm up tire flag add by junoda, ここでwarm_up_mode_を更新
+
     // dev/dynamic_control_param, subscriber for monitoring parameter changes
   sub_param_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
 
@@ -247,7 +249,7 @@ void PIDController::onTimer() {
   pub_cmd_->publish(cmd);
 
   // tire warm mode adeed by junoda
-  if (warm_up_mode_ && steering_tire_angle < 0.17 && steering_tire_angle > 0.17 ) { // warm_up_mode_がtrueで、ステア角が範囲内のとき
+  if (warm_up_mode_ && steering_angle < 0.1 && steering_angle > -0.1 ) { // warm_up_mode_がtrueで、ステア角が範囲内のとき
     static bool break_mode = false;
     double max_vel = 2.8;
     double min_vel = 0.6;
