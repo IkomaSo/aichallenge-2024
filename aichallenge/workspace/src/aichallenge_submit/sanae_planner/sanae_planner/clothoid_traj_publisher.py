@@ -17,6 +17,7 @@ class ClothoidTrajPublisher(Node):
     self.declare_parameter('wheel_base', 1.087)
     self.declare_parameter('speed_km_h', 20.0)
     self.declare_parameter('max_centripetal_acc', 4.0)
+    self.declare_parameter('skip', 0)
         
     self.traj_pub = self.create_publisher(Trajectory, '/planning/scenario_planning/trajectory', 10)
     self.odom_sub = self.create_subscription(Odometry, 'input/odom', self.odom_callback, 10)
@@ -26,6 +27,8 @@ class ClothoidTrajPublisher(Node):
     self.y = self.traj[:, 1]
     self.yaw = self.traj[:, 2]
     self.curvature = self.traj[:, 3]
+    
+    self.skip = int(self.get_parameter('skip').value)
     
     self.wheel_base = self.get_parameter('wheel_base').value
     self.speed_mps = self.get_parameter('speed_km_h').value / 3.6
@@ -53,7 +56,7 @@ class ClothoidTrajPublisher(Node):
     traj_msg.header.stamp = self.get_clock().now().to_msg()
     traj_msg.header.frame_id = 'map'
     
-    for i in range(0, len(self.x)):
+    for i in range(0, len(self.x), self.skip+1):
       traj_point = TrajectoryPoint()
       idx = (i + self.nearest_idx) % len(self.x)
       traj_point.pose.position.x = self.x[i]
