@@ -246,7 +246,6 @@ void PIDController::onTimer() {
   cmd.lateral.steering_tire_angle = steering_angle;
   cmd.lateral.steering_tire_rotation_rate = 0.0;
   yaw_rate_err_prev = std::make_pair(odometry_->header.stamp.sec, yaw_rate - current_yaw_rate);
-  pub_cmd_->publish(cmd);
 
   // tire warm mode adeed by junoda
   if (warm_up_mode_ && steering_angle < 0.1 && steering_angle > -0.1 ) { // warm_up_mode_がtrueで、ステア角が範囲内のとき
@@ -269,6 +268,9 @@ void PIDController::onTimer() {
       break_mode = false;
     }
   }
+
+  pub_cmd_->publish(cmd);
+
 }
 
 bool PIDController::subscribeMessageAvailable() {
