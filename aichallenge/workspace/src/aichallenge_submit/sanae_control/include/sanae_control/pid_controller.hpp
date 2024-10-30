@@ -10,6 +10,7 @@
 #include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <std_msgs/msg/bool.hpp> // warm up mode flag add by junoda
 #include <std_msgs/msg/empty.hpp>
 
 namespace sanae_control {
@@ -30,6 +31,7 @@ class PIDController : public rclcpp::Node {
   rclcpp::Subscription<Odometry>::SharedPtr sub_kinematics_;
   rclcpp::Subscription<VelocityReport>::SharedPtr sub_velocity_;
   rclcpp::Subscription<Trajectory>::SharedPtr sub_trajectory_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr sub_warm_up_mode_; // warm up tire flag add by junoda
   rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr sub_trigger_;
   std::shared_ptr<rclcpp::ParameterEventHandler> sub_param_;
   std::shared_ptr<rclcpp::ParameterCallbackHandle> steer_p_cb_handle_;
@@ -52,6 +54,7 @@ class PIDController : public rclcpp::Node {
   Trajectory::SharedPtr trajectory_;
   VelocityReport::SharedPtr velocity_;
   Odometry::SharedPtr odometry_;
+  bool warm_up_mode_; // warm up tire flag add by junoda, msg型である必要がないためただのbool型に変更
 
 
 
@@ -72,6 +75,7 @@ class PIDController : public rclcpp::Node {
  private:
   void onTimer();
   bool subscribeMessageAvailable();
+  bool getWarmUpMode();
 
   bool is_stop = false;
 };

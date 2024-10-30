@@ -17,7 +17,7 @@ using motion_utils::findNearestIndex;
 using tier4_autoware_utils::calcLateralDeviation;
 using tier4_autoware_utils::calcYawDeviation;
 
-PIDController::PIDController()
+PIDController::PIDController() // constructor
     : Node("pid_controller"),
       // initialize parameters
       wheel_base_(declare_parameter<float>("wheel_base", 1.087)),
@@ -39,6 +39,7 @@ PIDController::PIDController()
           declare_parameter<bool>("use_external_target_vel", false)),
       external_target_vel_(
           declare_parameter<float>("external_target_vel", 0.0)),
+      warm_up_mode_(false), // warm up tire flag add by junoda, topicの初期化
       stop_omega_(declare_parameter<float>("stop_omega", 5.0)) {
   pub_cmd_ = create_publisher<AckermannControlCommand>("output/control_cmd", 1);
   pub_debug_marker_ = create_publisher<visualization_msgs::msg::MarkerArray>(
@@ -53,11 +54,14 @@ PIDController::PIDController()
   sub_trajectory_ = create_subscription<Trajectory>(
       "input/trajectory", 1,
       [this](const Trajectory::SharedPtr msg) { trajectory_ = msg; });
+  sub_warm_up_mode_ = create_subscription<std_msgs::msg::Bool>(
+      "input/warm_up_mode", 1,
+      [this](const std_msgs::msg::Bool::SharedPtr msg) { warm_up_mode_ = msg->data; }); // warm up tire flag add by junoda, ここでwarm_up_mode_を更新
   sub_trigger_ = create_subscription<std_msgs::msg::Empty>(
       "input/trigger", 1, [this](const std_msgs::msg::Empty::SharedPtr) {
         is_stop = !is_stop;
       });
-  // dev/dynamic_control_param, subscriber for monitoring parameter changes
+    // dev/dynamic_control_param, subscriber for monitoring parameter changes
   sub_param_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
 
   auto steer_p_cb = [this](const rclcpp::Parameter &p) {
@@ -121,7 +125,8 @@ PIDController::PIDController()
   using namespace std::literals::chrono_literals;
   timer_ = rclcpp::create_timer(this, get_clock(), 8ms,
                                 std::bind(&PIDController::onTimer, this));
-}
+} // end of constructor
+
 
 AckermannControlCommand zeroAckermannControlCommand(rclcpp::Time stamp) {
   AckermannControlCommand cmd;
@@ -240,6 +245,28 @@ void PIDController::onTimer() {
   cmd.lateral.steering_tire_rotation_rate = 0.0;
   yaw_rate_err_prev = std::make_pair(odometry_->header.stamp.sec, yaw_rate - current_yaw_rate);
   pub_cmd_->publish(cmd);
+
+  // tire warm mode adeed by junoda
+  if (warm_up_mode_ && steering_tire_angle < /*上限*/ && steering_tire_angle > /*下限*/ ) { // warm_up_mode_がtrueで、ステア角が範囲内のとき
+    static bool break_mode = false;
+    if (current_longitudinal_vel > /*速度*/) {
+      // RCLCPP_INFO(get_logger(), "Tire warm up mode is enabled");
+      /* 指令速度をマイナスにする*/
+      cmd.longitudinal.speed = /*マイナス一定値*/; // TODO
+      break_mode = true;
+    } else if (break_mode && current_longitudinal_vel < /*速度*/ && current_longitudinal_vel > /*速度*/) {
+      /* 指令速度をマイナスにする*/
+      cmd.longitudinal.speed = /*マイナス一定値*/; // TODO
+    } else if (!break_mode && current_longitudinal_vel < /*速度*/ && current_longitudinal_vel > /*速度*/) {
+      /* いつもの指令速度にする*/
+      cmd.longitudinal.speed = target_longitudinal_vel; // TODO
+    } else { // 十分減速仕切ったときにいつもの指令速度にする処理
+      // RCLCPP_INFO(get_logger(), "Tire warm up mode is disabled");
+      /* いつもの指令速度にする*/
+      cmd.longitudinal.speed = target_longitudinal_vel; // TODO
+      break_mode = false;
+    }
+  }
 }
 
 bool PIDController::subscribeMessageAvailable() {
