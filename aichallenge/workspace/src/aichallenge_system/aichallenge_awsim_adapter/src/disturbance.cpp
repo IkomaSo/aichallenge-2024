@@ -7,8 +7,8 @@ double acceleration_offset = 0.0;
 
 MakeDisturbance::MakeDisturbance()
 : Node("make_disturbance"), 
-    steering_disturbance_(declare_parameter<float>("steering_disturbance", 0.1)),
-    acceleration_disturbance_(declare_parameter<float>("acceleration_disturbance", 0.1)),
+    steering_disturbance_(declare_parameter<float>("steering_disturbance", 0.04)),
+    acceleration_disturbance_(declare_parameter<float>("acceleration_disturbance", 0.5)),
     running_(true)
 {
     using std::placeholders::_1;
@@ -24,7 +24,7 @@ MakeDisturbance::MakeDisturbance()
     //Publishers
     pub_cmd_to_sim_ = create_publisher<AckermannControlCommand>("/awsim/control_cmd", 1);
 
-    keyboard_timer_ = create_wall_timer(std::chrono::seconds(1), std::bind(&MakeDisturbance::check_keyboard_input, this), timer_cb_group_);
+    keyboard_timer_ = create_wall_timer(std::chrono::milliseconds(30), std::bind(&MakeDisturbance::check_keyboard_input, this), timer_cb_group_);
 }
 
 void MakeDisturbance::on_converted_cmd(const AckermannControlCommand::ConstSharedPtr msg)
