@@ -22,6 +22,7 @@ using autoware_auto_control_msgs::msg::AckermannControlCommand;
 class MakeDisturbance : public rclcpp::Node {
     public:
         explicit MakeDisturbance();
+        ~MakeDisturbance();
 
     private:
         rclcpp::CallbackGroup::SharedPtr subscriber_cb_group_;
