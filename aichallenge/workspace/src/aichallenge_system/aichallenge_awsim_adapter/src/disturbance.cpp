@@ -5,6 +5,12 @@ struct termios cooked, raw;
 double steer_offset = 0.0;
 double acceleration_offset = 0.0;
 
+void reset_terminal()
+{
+    tcsetattr(kfd, TCSANOW, &cooked);
+}
+
+
 MakeDisturbance::MakeDisturbance()
 : Node("make_disturbance"), 
     steering_disturbance_(declare_parameter<float>("steering_disturbance", 0.04)),
@@ -25,6 +31,19 @@ MakeDisturbance::MakeDisturbance()
     pub_cmd_to_sim_ = create_publisher<AckermannControlCommand>("/awsim/control_cmd", 1);
 
     keyboard_timer_ = create_wall_timer(std::chrono::milliseconds(30), std::bind(&MakeDisturbance::check_keyboard_input, this), timer_cb_group_);
+
+    // Store initial terminal settings
+    tcgetattr(kfd, &cooked);
+    raw = cooked;
+    raw.c_lflag &= ~(ICANON | ECHO);
+
+    // Register reset_terminal() function to ensure terminal resets on exit
+    std::atexit(reset_terminal);
+}
+
+MakeDisturbance::~MakeDisturbance()
+{
+    tcsetattr(kfd, TCSANOW, &cooked);
 }
 
 void MakeDisturbance::on_converted_cmd(const AckermannControlCommand::ConstSharedPtr msg)
@@ -101,7 +120,6 @@ void MakeDisturbance::check_keyboard_input(){
 
     tcsetattr(kfd, TCSANOW, &oldt);
 }
-
 
 int main(int argc, char const *argv[]) {
   rclcpp::init(argc, argv);
