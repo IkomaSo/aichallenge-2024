@@ -12,4 +12,5 @@
   <node pkg="aichallenge_awsim_adapter" exec="sensor_converter">
     <param from="$(find-pkg-share aichallenge_awsim_adapter)/config/sensor_converter.param.yaml" />
   </node>
+  <include file="$(find-pkg-share aichallenge_awsim_adapter)/launch/disturbance.launch.py"/>
 </launch>
