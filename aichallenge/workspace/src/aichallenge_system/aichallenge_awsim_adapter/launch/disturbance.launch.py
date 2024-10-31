@@ -8,5 +8,9 @@ def generate_launch_description():
             executable='make_disturbance',
             name='make_disturbance',
             prefix='xterm -e',
+            parameters=[
+                {'steering_disturbance': 0.05},
+                {'acceleration_disturbance': 2.0}
+            ]
         )
     ])
