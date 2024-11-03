@@ -129,11 +129,9 @@ void SlidingModeController::onTimer() {
       lookahead_min_distance_;
 
   double rear_x =
-      odometry_->pose.pose.position.x -
-      wheel_base_ / 2.0 * std::cos(odometry_->pose.pose.orientation.z);
+      odometry_->pose.pose.position.x;
   double rear_y =
-      odometry_->pose.pose.position.y -
-      wheel_base_ / 2.0 * std::sin(odometry_->pose.pose.orientation.z);
+      odometry_->pose.pose.position.y;
 
   auto get_loockahead_pt = [&](double distance) {
     auto itr = std::find_if(
