@@ -19,4 +19,4 @@ ament_auto_add_executable(pid_controller
   src/pid_controller.cpp
 )
 
-ament_auto_package()
+ament_auto_package(INSTALL_TO_SHARE config)
