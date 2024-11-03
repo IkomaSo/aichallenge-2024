@@ -7,11 +7,13 @@
   <arg name="vehicle_model" default="racing_kart"  description="vehicle model name"/>
   <arg name="sensor_model" default="racing_kart_sensor_kit" description="sensor model name"/>
   <arg name="simulation" description="used for sensor kit param"/>
+  <arg name="wheel_base" default="1.087" description="wheel base of the vehicle"/>
 
   <log message="The arguments for sanae_launch."/>
   <log message=" - simulation: $(var simulation)"/>
   <log message=" - use_sim_time: $(var use_sim_time)"/>
   <log message=" - sensor_model: $(var sensor_model)"/>
+  <log message=" - vehicle_model: $(var vehicle_model)"/>
 
   <!-- Optional parameters -->
   <!-- Map -->
@@ -214,7 +216,7 @@
         <param name="lanelet2_map_file" value="$(var map_path)/$(var lanelet2_map_file)"/>
         <param name="opti_points" value="120"/>
         <param name="opti_ahead" value="0"/>
-        <param name="wheel_base" value="1.087"/>
+        <param name="wheel_base" value="$(var wheel_base)"/>
         <param name="course_margin" value="2.0"/>
         <param name="curve_weight" value="500.0"/>
         <param name="speed_km_h" value="10.0"/>
@@ -224,7 +226,7 @@
 
       <node pkg="sanae_planner" exec="clothoid_traj_publisher" name="clothoid_traj_publisher" output="screen">
         <param name="lanelet2_map_file" value="$(find-pkg-share sanae_planner)/trajectory/traj.csv"/>
-        <param name="wheel_base" value="1.087"/>
+        <param name="wheel_base" value="$(var wheel_base)"/>
         <param name="speed_km_h" value="30.0"/>
         <param name="max_centripetal_acc" value="4.0"/>
         <param name="skip" value="0"/>
@@ -236,7 +238,7 @@
   </group>
 
   <node pkg="sanae_control" exec="sliding_mode_controller" name="sliding_mode_controller" output="screen">
-    <param name="wheel_base" value="1.087"/>
+    <param name="wheel_base" value="$(var wheel_base)"/>
     <param name="use_external_target_vel" value="false"/>
     <param name="external_target_vel" value="50.0"/>
     <param name="vel_lookahead_distance" value="10.0"/>
@@ -276,6 +278,7 @@
 
   <!-- <node pkg="sanae_control" exec="pid_controller" name="pid_controller" output="screen">
     <param name="use_external_target_vel" value="false"/>
+    <param name="wheel_base" value="$(var wheel_base)"/>
     <param name="external_target_vel" value="50.0"/>
     <param name="steering_angle_proportional_gain" value="0.1"/>
     <param name="steering_angle_integral_gain" value="0.001"/> 

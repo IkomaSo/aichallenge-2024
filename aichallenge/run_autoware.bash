@@ -4,10 +4,10 @@ mode=${1}
 
 case "${mode}" in
 "awsim")
-    opts="simulation:=true use_sim_time:=true run_rviz:=true"
+    opts="simulation:=true use_sim_time:=true run_rviz:=true wheel_base:=1.087"
     ;;
 "vehicle")
-    opts="simulation:=false use_sim_time:=false run_rviz:=false"
+    opts="simulation:=false use_sim_time:=false run_rviz:=false wheel_base:=1.28"
     ;;
 "rosbag")
     opts="simulation:=false use_sim_time:=true run_rviz:=true"

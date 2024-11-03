@@ -6,12 +6,14 @@
     <arg name="run_rviz" default="$(var simulation)"/>
     <arg name="sensor_model" default="racing_kart_sensor_kit"/>
     <arg name="launch_vehicle_interface" default="true"/>
+    <arg name="wheel_base" default="1.087"/>
 
     <log message="The arguments for aichallenge_system_launch."/>
     <log message=" - simulation: $(var simulation)"/>
     <log message=" - use_sim_time: $(var use_sim_time)"/>
     <log message=" - sensor_model: $(var sensor_model)"/>
     <log message=" - launch_vehicle_interface: $(var launch_vehicle_interface)"/>
+    <log message=" - wheel_base: $(var wheel_base)"/>
 
     <!-- Main module of AI challenge 2024. -->
     <include file="$(find-pkg-share aichallenge_submit_launch)/launch/aichallenge_submit.launch.xml" >
@@ -19,6 +21,7 @@
         <arg name="use_sim_time" value="$(var use_sim_time)"/>
         <arg name="sensor_model" value="$(var sensor_model)"/>
         <arg name="launch_vehicle_interface" value="$(var launch_vehicle_interface)"/>
+        <arg name="wheel_base" value="$(var wheel_base)"/>
     </include>
 
     <!-- Visualization. -->
