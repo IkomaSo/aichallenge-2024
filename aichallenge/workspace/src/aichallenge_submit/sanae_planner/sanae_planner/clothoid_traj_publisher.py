@@ -59,19 +59,19 @@ class ClothoidTrajPublisher(Node):
     for i in range(0, len(self.x), self.skip+1):
       traj_point = TrajectoryPoint()
       idx = (i + self.nearest_idx) % len(self.x)
-      traj_point.pose.position.x = self.x[i]
-      traj_point.pose.position.y = self.y[i]
+      traj_point.pose.position.x = self.x[idx]
+      traj_point.pose.position.y = self.y[idx]
       traj_point.pose.position.z = 0.0
-      q = quaternion_from_euler(0, 0, self.yaw[i])
+      q = quaternion_from_euler(0, 0, self.yaw[idx])
       traj_point.pose.orientation.x = q[0]
       traj_point.pose.orientation.y = q[1]
       traj_point.pose.orientation.z = q[2]
       traj_point.pose.orientation.w = q[3]
       traj_point.longitudinal_velocity_mps = self.speed_mps
-      max_speed = np.sqrt(self.get_parameter('max_centripetal_acc').value / (np.abs(self.curvature[i])+1e-6))
+      max_speed = np.sqrt(self.get_parameter('max_centripetal_acc').value / (np.abs(self.curvature[idx])+1e-6))
       if self.speed_mps > max_speed:
         traj_point.longitudinal_velocity_mps = max_speed
-      traj_point.front_wheel_angle_rad = np.arctan(self.curvature[i] * self.wheel_base)
+      traj_point.front_wheel_angle_rad = np.arctan(self.curvature[idx] * self.wheel_base)
       traj_msg.points.append(traj_point)
       
     self.traj_pub.publish(traj_msg)
