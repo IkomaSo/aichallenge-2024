@@ -22,8 +22,7 @@ esac
 
 trajectory=${2}
 
-traj_path="/aichallenge/workspace/src/aichallenge_submit/sanae_planner/trajectory/${trajectory}.csv"
-
+traj_path="/aichallenge/workspace/install/sanae_planner/share/sanae_planner/trajectory/${trajectory}.csv"
 if [ ! -e ${traj_path} ]; then
     echo "traj_path: ${traj_path}"
     echo "invalid trajectory"
@@ -44,7 +43,7 @@ else
     exit 1
 fi
 
-config_path="/aichallenge/workspace/src/aichallenge_submit/sanae_control/config/${preset}.yaml"
+config_path="/aichallenge/workspace/install/sanae_control/share/sanae_control/config/${preset}.yaml"
 if [ ! -e ${config_path} ]; then
     echo "config_path: ${config_path}"
     echo "invalid preset"
