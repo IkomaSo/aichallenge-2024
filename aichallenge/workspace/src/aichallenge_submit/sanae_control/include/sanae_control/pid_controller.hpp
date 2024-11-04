@@ -12,6 +12,7 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <std_msgs/msg/bool.hpp> // warm up mode flag add by junoda
 #include <std_msgs/msg/empty.hpp>
+#include <std_msgs/msg/float64.hpp>
 
 namespace sanae_control {
 
@@ -22,6 +23,7 @@ using autoware_auto_planning_msgs::msg::TrajectoryPoint;
 using geometry_msgs::msg::Pose;
 using geometry_msgs::msg::Twist;
 using nav_msgs::msg::Odometry;
+using std_msgs::msg::Float64;
 
 class PIDController : public rclcpp::Node {
  public:
@@ -46,6 +48,7 @@ class PIDController : public rclcpp::Node {
   // publishers
   rclcpp::Publisher<AckermannControlCommand>::SharedPtr pub_cmd_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_debug_marker_;
+  rclcpp::Publisher<Float64>::SharedPtr pub_yaw_rate_;
   
   // timer
   rclcpp::TimerBase::SharedPtr timer_;
