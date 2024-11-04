@@ -7,6 +7,9 @@
     <arg name="sensor_model" default="racing_kart_sensor_kit"/>
     <arg name="launch_vehicle_interface" default="true"/>
     <arg name="wheel_base" default="1.087"/>
+    <arg name="trajectory" default="traj"/>
+    <arg name="controller" default="smc"/>
+    <arg name="controller_param" default="default"/>
 
     <log message="The arguments for aichallenge_system_launch."/>
     <log message=" - simulation: $(var simulation)"/>
@@ -22,6 +25,9 @@
         <arg name="sensor_model" value="$(var sensor_model)"/>
         <arg name="launch_vehicle_interface" value="$(var launch_vehicle_interface)"/>
         <arg name="wheel_base" value="$(var wheel_base)"/>
+        <arg name="trajectory" value="$(var trajectory)"/>
+        <arg name="controller" value="$(var controller)"/>
+        <arg name="controller_param" value="$(var controller_param)"/>
     </include>
 
     <!-- Visualization. -->

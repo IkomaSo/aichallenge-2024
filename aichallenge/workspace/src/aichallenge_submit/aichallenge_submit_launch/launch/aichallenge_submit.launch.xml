@@ -5,6 +5,9 @@
   <arg name="sensor_model"/>
   <arg name="launch_vehicle_interface"/>
   <arg name="wheel_base"/>
+  <arg name="trajectory"/>
+  <arg name="controller"/>
+  <arg name="controller_param"/>
 
   <log message="The arguments for aichallenge_submit_launch."/>
   <log message=" - simulation: $(var simulation)"/>
@@ -27,6 +30,9 @@
     <arg name="simulation" value="$(var simulation)"/>
     <arg name="launch_vehicle_interface" value="$(var launch_vehicle_interface)"/>
     <arg name="wheel_base" value="$(var wheel_base)"/>
+    <arg name="trajectory" value="$(var trajectory)"/>
+    <arg name="controller" value="$(var controller)"/>
+    <arg name="controller_param" value="$(var controller_param)"/>
   </include>
 
   <!-- place a goal pose anywhere you like-->

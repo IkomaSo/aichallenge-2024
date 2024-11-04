@@ -1,12 +1,11 @@
-#centripetal_acc = 2.0
-pid_controller:
-  ros_parameters:
+/pid_controller:
+  ros__parameters:
     lookahead_gain: 0.1
     lookahead_min_distance: 0.0
     speed_proportional_gain: 1.0
     steering_angle_integral_gain: 0.0
     steering_angle_proportional_gain: 0.1
-    vel_lookahead_distance: 0.0
+    vel_lookahead_distance: 5.0
     yaw_rate_fb_lat_gain: 0.02
     yaw_rate_fb_yaw_gain: 2.0
 

@@ -8,12 +8,18 @@
   <arg name="sensor_model" default="racing_kart_sensor_kit" description="sensor model name"/>
   <arg name="simulation" description="used for sensor kit param"/>
   <arg name="wheel_base" default="1.087" description="wheel base of the vehicle"/>
+  <arg name="trajectory" default="traj" description="trajectory topic name"/>
+  <arg name="controller" default="smc" description="controller name"/>
+  <arg name="controller_param" default="default" description="controller parameter name"/>
 
   <log message="The arguments for sanae_launch."/>
   <log message=" - simulation: $(var simulation)"/>
   <log message=" - use_sim_time: $(var use_sim_time)"/>
   <log message=" - sensor_model: $(var sensor_model)"/>
   <log message=" - vehicle_model: $(var vehicle_model)"/>
+  <log message=" - trajectory: $(var trajectory)"/>
+  <log message=" - controller: $(var controller)"/>
+  <log message=" - controller_param: $(var controller_param)"/>
 
   <!-- Optional parameters -->
   <!-- Map -->
@@ -225,7 +231,7 @@
       </node> -->
 
       <node pkg="sanae_planner" exec="clothoid_traj_publisher" name="clothoid_traj_publisher" output="screen">
-        <param name="traj_file" value="$(find-pkg-share sanae_planner)/trajectory/traj_dd.csv"/>
+        <param name="traj_file" value="$(find-pkg-share sanae_planner)/trajectory/$(var trajectory).csv"/>
         <param name="wheel_base" value="$(var wheel_base)"/>
         <param name="speed_km_h" value="30.0"/>
         <param name="max_centripetal_acc" value="6.0"/>
@@ -237,25 +243,44 @@
     </group>
   </group>
 
-  <node pkg="sanae_control" exec="sliding_mode_controller" name="sliding_mode_controller" output="screen">
-    <param name="wheel_base" value="$(var wheel_base)"/>
-    <param name="use_external_target_vel" value="false"/>
-    <param name="external_target_vel" value="50.0"/>
-    <param name="vel_lookahead_distance" value="10.0"/>
-    <param name="lookahead_gain" value="0.0"/>
-    <param name="lookahead_min_distance" value="0.0"/>
-    <param name="speed_proportional_gain" value="2.0"/>
-    <param name="theta_weight" value="9.0"/>
-    <param name="reaching_gain" value="4.0"/>
-    <param name="saturation_sharpness" value="1.0"/>
+  <group if="$(eval &quot;'$(var controller)'=='smc'&quot;)">
+    <log message="Using Sliding Mode Controller"/>
+    <node pkg="sanae_control" exec="sliding_mode_controller" name="sliding_mode_controller" output="screen">
+      <param name="wheel_base" value="$(var wheel_base)"/>
+      <param name="use_external_target_vel" value="false"/>
+      <param name="external_target_vel" value="50.0"/>
+      <param name="speed_proportional_gain" value="2.0"/>
+      <param name="saturation_sharpness" value="1.0"/>
+      <param from="$(find-pkg-share sanae_control)/config/$(var controller_param).yaml"/>
 
-    <remap from="input/kinematics" to="/localization/kinematic_state"/>
-    <remap from="input/velocity" to="/vehicle/status/velocity_status"/>
-    <remap from="input/trajectory" to="/planning/scenario_planning/trajectory"/>
-    <remap from="input/trigger" to="/control/command/trigger"/>
-    <remap from="output/control_cmd" to="/control/command/control_cmd"/>
-    <remap from="output/debug_marker" to="/control/pure_pursuit/debug_marker"/>
-  </node> 
+      <remap from="input/kinematics" to="/localization/kinematic_state"/>
+      <remap from="input/velocity" to="/vehicle/status/velocity_status"/>
+      <remap from="input/trajectory" to="/planning/scenario_planning/trajectory"/>
+      <remap from="input/trigger" to="/control/command/trigger"/>
+      <remap from="output/control_cmd" to="/control/command/control_cmd"/>
+      <remap from="output/debug_marker" to="/control/pure_pursuit/debug_marker"/>
+    </node> 
+  </group>
+
+  <group if="$(eval &quot;'$(var controller)'=='pid'&quot;)">
+    <log message="Using PID Controller"/>
+    <node pkg="sanae_control" exec="pid_controller" name="pid_controller" output="screen">
+      <param name="use_external_target_vel" value="false"/>
+      <param name="wheel_base" value="$(var wheel_base)"/>
+      <param name="external_target_vel" value="50.0"/>
+      <param name="stop_position_threshold" value="13.0"/>
+      <param name="stop_omega" value="5.0"/>
+      <param from="$(find-pkg-share sanae_control)/config/$(var controller_param).yaml"/>
+
+      <remap from="input/kinematics" to="/localization/kinematic_state"/>
+      <remap from="input/velocity" to="/vehicle/status/velocity_status"/>
+      <remap from="input/trajectory" to="/planning/scenario_planning/trajectory"/>
+      <remap from="input/trigger" to="/control/command/trigger"/>
+      <remap from="output/control_cmd" to="/control/command/control_cmd"/>
+      <remap from="output/debug_marker" to="/control/pure_pursuit/debug_marker"/>
+    </node>
+  </group>
+
 
   <!-- <node pkg="sanae_control" exec="simple_pd_controller" name="simple_pd_controller" output="screen">
     <param name="use_external_target_vel" value="false"/>
