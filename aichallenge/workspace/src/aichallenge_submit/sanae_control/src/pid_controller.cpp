@@ -44,8 +44,7 @@ PIDController::PIDController() // constructor
   pub_cmd_ = create_publisher<AckermannControlCommand>("output/control_cmd", 1);
   pub_debug_marker_ = create_publisher<visualization_msgs::msg::MarkerArray>(
       "output/debug_marker", 1);
-  pub_yaw_rate_ = create_publisher<Float64>("output/yaw_rate_cmd", 1);
-
+  pub_lat_err_ = create_publisher<Float64>("pid/lateral_error", 1);
 
   sub_kinematics_ = create_subscription<Odometry>(
       "input/kinematics", 1,
@@ -247,9 +246,9 @@ void PIDController::onTimer() {
   cmd.lateral.steering_tire_rotation_rate = 0.0;
   yaw_rate_err_prev = std::make_pair(odometry_->header.stamp.sec, yaw_rate - current_yaw_rate);
 
-  Float64 yaw_rate_msg;
-  yaw_rate_msg.data = yaw_rate;
-  pub_yaw_rate_->publish(yaw_rate_msg);
+  Float64 lat_err_msg;
+  lat_err_msg.data = lat_err;
+  pub_lat_err_->publish(lat_err_msg);
 
   // tire warm mode adeed by junoda
   if (warm_up_mode_ && steering_angle < 0.1 && steering_angle > -0.1 ) { // warm_up_mode_がtrueで、ステア角が範囲内のとき
