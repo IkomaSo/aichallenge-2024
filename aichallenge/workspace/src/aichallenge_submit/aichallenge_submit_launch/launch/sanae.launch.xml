@@ -248,9 +248,6 @@
     <node pkg="sanae_control" exec="sliding_mode_controller" name="sliding_mode_controller" output="screen">
       <param name="wheel_base" value="$(var wheel_base)"/>
       <param name="use_external_target_vel" value="false"/>
-      <param name="external_target_vel" value="50.0"/>
-      <param name="speed_proportional_gain" value="2.0"/>
-      <param name="saturation_sharpness" value="1.0"/>
       <param from="$(find-pkg-share sanae_control)/config/$(var controller_param).yaml"/>
 
       <remap from="input/kinematics" to="/localization/kinematic_state"/>

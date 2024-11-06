@@ -1,8 +1,9 @@
 /sliding_mode_controller:
   ros__parameters:
-    lookahead_gain: 0.0
+    lookahead_gain: 0.02
     lookahead_min_distance: 0.0
     vel_lookahead_distance: 10.0
-    theta_weight: 9.0
-    reaching_gain: 4.0
-    speed_proportional_gain: 2.0
+    theta_weight: 8.5
+    reaching_gain: 3.0
+    saturation_sharpness: 3.0
+    speed_proportional_gain: 10.0
