@@ -48,7 +48,7 @@ class PIDController : public rclcpp::Node {
   // publishers
   rclcpp::Publisher<AckermannControlCommand>::SharedPtr pub_cmd_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_debug_marker_;
-  rclcpp::Publisher<Float64>::SharedPtr pub_yaw_rate_;
+  rclcpp::Publisher<Float64>::SharedPtr pub_lat_err_;
   
   // timer
   rclcpp::TimerBase::SharedPtr timer_;
