@@ -233,7 +233,7 @@
       <node pkg="sanae_planner" exec="clothoid_traj_publisher" name="clothoid_traj_publisher" output="screen">
         <param name="traj_file" value="$(find-pkg-share sanae_planner)/trajectory/$(var trajectory).csv"/>
         <param name="wheel_base" value="$(var wheel_base)"/>
-        <param name="speed_km_h" value="18.0"/>
+        <param name="speed_km_h" value="15.0"/>
         <param name="max_centripetal_acc" value="2.0"/>
         <param name="skip" value="0"/>
         <remap from="input/odom" to="/localization/kinematic_state"/>
