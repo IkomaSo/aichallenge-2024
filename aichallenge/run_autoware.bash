@@ -2,8 +2,6 @@
 
 mode=${1}
 
-trajectory=${2}
-
 case "${mode}" in
 "awsim")
     opts="simulation:=true use_sim_time:=true run_rviz:=true wheel_base:=1.087"
@@ -31,8 +29,10 @@ fi
 
 traj_opts="trajectory:=${trajectory}"
 
-controller=${3}
-preset=${4}
+opts="${opts} wheel_base:=${3}"
+
+controller=${4}
+preset=${5}
 
 if [ "${controller}" = "smc" ]; then
     opts="${opts} controller:=smc"
