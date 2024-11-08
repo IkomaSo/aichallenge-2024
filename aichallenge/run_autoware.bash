@@ -32,12 +32,13 @@ traj_opts="trajectory:=${trajectory}"
 opts="${opts} wheel_base:=${3}"
 
 controller=${4}
-preset=${5}
 
 if [ "${controller}" = "smc" ]; then
     opts="${opts} controller:=smc"
+    preset="smc_default"
 elif [ "${controller}" = "pid" ]; then
     opts="${opts} controller:=pid"
+    preset="pid_safe"
 else
     echo "invalid controller (use 'smc' or 'pid')"
     exit 1
