@@ -6,4 +6,4 @@
     theta_weight: 8.5
     reaching_gain: 4.0
     saturation_sharpness: 1.5
-    speed_proportional_gain: 1.0
+    speed_proportional_gain: 2.0
