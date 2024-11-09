@@ -2,7 +2,7 @@
   ros__parameters:
     lookahead_gain: 0.02
     lookahead_min_distance: 0.0
-    vel_lookahead_distance: 5.0
+    vel_lookahead_distance: 10.0
     theta_weight: 8.5
     reaching_gain: 4.0
     saturation_sharpness: 1.5
